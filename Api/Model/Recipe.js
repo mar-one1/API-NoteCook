@@ -83,7 +83,7 @@ class Recipe {
           row.Id_recipe,
           row.Nom_Recipe,
           row.Icon_recipe,
-          row.Fav_recipe, 
+          row.Fav_recipe,
           row.unique_key_recipe,
           row.Frk_user
         );
@@ -578,54 +578,68 @@ class Recipe {
     }
   }
 
-  static deleteimage(pathimage, callback) {
-    const filePathToDelete = "./public/uploads/" + pathimage; // Replace with the path to the file you want to delete
+  static deleteimage(pathimage, callback = () => { }) { // Default empty callback
+    const filePathToDelete = "./public/data/uploads/" + pathimage;
     try {
-      // Check if the file exists
       console.log("path for delete " + filePathToDelete);
       fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
         if (err) {
           console.error("File does not exist or cannot be accessed.");
-          return;
+          return callback(err);  // Pass error to the callback
         }
 
         // File exists, proceed to delete
         fs.unlink(filePathToDelete, (unlinkErr) => {
           if (unlinkErr) {
             console.error("Error deleting file:", unlinkErr);
-            return;
+            return callback(unlinkErr);  // Pass error to the callback
           }
           console.log("File deleted successfully.");
-          callback(null, "File deleted successfully.");
+          callback(null, "File deleted successfully.");  // Success message
         });
       });
     } catch (err) {
-      db.close();
-      console.error("Error delete image recipe: " + filePathToDelete, err);
-      callback(err, null);
+      console.error("Error deleting image recipe: " + filePathToDelete, err);
+      callback(err);  // Pass error to the callback
     }
   }
+
 
   static async UpdateRecipeImage(unique, imagebyte, callback) {
     const db = new sqlite3.Database("DB_Notebook.db");
     try {
-      db.run(
-        "UPDATE Recipe SET Icon_recipe = ? WHERE unique_key_recipe = ?",
-        [imagebyte, unique],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
+      // Retrieve the recipe ID using the unique_key_recipe
+      db.get(
+        `SELECT Icon_recipe FROM Recipe WHERE unique_key_recipe = ?`,
+        [unique],
+        (err, row) => {
+          if (err || !row) {
+            db.run("ROLLBACK");
+            console.error("Error retrieving recipe ID:", err);
+            return callback(err || new Error("Recipe not found"));
           }
-          if (this.changes === 0) {
-            callback(null, null); // User not found or not updated
-            return;
-          }
-          // If the user doesn't exist, add them to the database
-          callback(null, imagebyte);  
-          console.log(imagebyte);
+          const oldPath = row.Icon_recipe;
+          db.run(
+            "UPDATE Recipe SET Icon_recipe = ? WHERE unique_key_recipe = ?",
+            [imagebyte, unique],
+            function (err) {
+              if (err) {
+                callback(err);
+                return;
+              }
+              if (this.changes === 0) {
+                callback(null, null); // User not found or not updated
+                return;
+              }
+              // If the user doesn't exist, add them to the database
+              console.log(oldPath);
+              Recipe.deleteimage(oldPath);
+              callback(null, imagebyte);
+              console.log(imagebyte);
+            }
+          );
         }
-      );
+      )
       db.close();
     } catch (err) {
       db.close();
@@ -777,30 +791,30 @@ class Recipe {
 
   static updateRecipeWithDetails(recipeData, callback) {
     const db = new sqlite3.Database("DB_Notebook.db");
-  
+
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
-  
+
       try {
         const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
-  
+
         db.run(
           `UPDATE Recipe 
-           SET Nom_Recipe = ?, Icon_recipe = ?, Fav_recipe = ?, Frk_user = ? 
+           SET Nom_Recipe = ?, Fav_recipe = ? 
            WHERE unique_key_recipe = ?`,
-          [recipe.name, recipe.icon, recipe.fav, recipe.userId, recipe.unique_key],
+          [recipe.name, recipe.fav, recipe.unique_key],
           function (err) {
             if (err) {
               db.run("ROLLBACK");
               console.error("Error updating recipe:", err);
               return callback(err);
             }
-  
+
             const uniqueKey = recipe.unique_key;
-  
+
             // Retrieve the recipe ID using the unique_key_recipe
             db.get(
-              `SELECT Id_recipe FROM Recipe WHERE unique_key_recipe = ?`,
+              `SELECT unique_key_recipe FROM Recipe WHERE unique_key_recipe = ?`,
               [uniqueKey],
               (err, row) => {
                 if (err || !row) {
@@ -808,9 +822,9 @@ class Recipe {
                   console.error("Error retrieving recipe ID:", err);
                   return callback(err || new Error("Recipe not found"));
                 }
-  
+
                 const recipeId = row.Id_recipe;
-  
+
                 // Update detail recipe
                 db.run(
                   `UPDATE Detail_recipe 
@@ -830,7 +844,7 @@ class Recipe {
                       console.error("Error updating detail recipe:", err);
                       return callback(err);
                     }
-  
+
                     // Update ingredients
                     Recipe.updateIngredients(db, ingredients, recipeId, (err) => {
                       if (err) {
@@ -838,7 +852,7 @@ class Recipe {
                         console.error("Error updating ingredients:", err);
                         return callback(err);
                       }
-  
+
                       // Update steps
                       Recipe.updateSteps(db, steps, recipeId, (err) => {
                         if (err) {
@@ -846,7 +860,7 @@ class Recipe {
                           console.error("Error updating steps:", err);
                           return callback(err);
                         }
-  
+
                         // Commit transaction
                         db.run("COMMIT", function (err) {
                           if (err) {
@@ -871,7 +885,7 @@ class Recipe {
       }
     });
   }
-  
+
   static updateIngredients(db, ingredients, recipeId, callback) {
     try {
       db.run(
@@ -881,7 +895,7 @@ class Recipe {
           if (err) {
             return callback(err);
           }
-  
+
           // Insert new ingredients after deletion
           Recipe.insertIngredients(db, ingredients, recipeId, callback);
         }
@@ -891,7 +905,7 @@ class Recipe {
       callback(err, null);
     }
   }
-  
+
   static updateSteps(db, steps, recipeId, callback) {
     try {
       db.run(
@@ -901,7 +915,7 @@ class Recipe {
           if (err) {
             return callback(err);
           }
-  
+
           // Insert new steps after deletion
           Recipe.insertSteps(db, steps, recipeId, callback);
         }
@@ -911,8 +925,8 @@ class Recipe {
       callback(err, null);
     }
   }
-  
-  
+
+
 
   static deleteRecipe(recipeId, callback) {
     const db = new sqlite3.Database("DB_Notebook.db");

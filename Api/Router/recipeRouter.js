@@ -218,6 +218,17 @@ router.put('/', (req, res) => {
   });
 });
 
+router.delete('/delete/:path', (req, res) => {
+  const pathimage = req.params.path;
+  console.log('path for delete '+pathimage);
+  Recipe.deleteimage(pathimage,(err, validite) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.status(201).json(validite);
+  });
+});
+
 
 // DELETE route to delete a recipe by ID
 router.delete("/:id", validateRecipe.validateDeleteRecipe, (req, res) => {
