@@ -396,6 +396,7 @@ class User {
     password,
     grade,
     status,
+    url,
     callback
   ) {
     const db = new sqlite3.Database("DB_Notebook.db");
