@@ -5,10 +5,18 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "serve": "nodemon index.js"
+    "serve": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Your Name",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/prj_api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/prj_api/issues"
+  },
   "dependencies": {
     "axios": "^1.5.1",
     "bcryptjs": "^2.4.3",
@@ -17,6 +25,7 @@
     "express-validator": "^7.0.1",
     "file-url": "^4.0.0",
     "fuse.js": "^7.0.0",
+    "helmet": "^7.0.0",
     "http-server": "^14.1.1",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
@@ -31,7 +40,13 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "eslint": "^8.51.0",
+    "prettier": "^3.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0"
   },
-  "engines": { "node": "20.x" }
+  "engines": {
+    "node": "20.x"
+  }
 }
