@@ -8,14 +8,14 @@
     "serve": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Your Name",
+  "author": "moimeme",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/prj_api.git"
+    "url": "https://github.com/mar-one1/API-21.11.2023.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/prj_api/issues"
+    "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
   },
   "dependencies": {
     "axios": "^1.5.1",
@@ -37,7 +37,8 @@
     "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.1.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "better-sqlite3": "^8.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
@@ -48,5 +49,20 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "vercel": {
+    "version": 2,
+    "builds": [
+      {
+        "src": "index.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "/"
+      }
+    ]
   }
 }
