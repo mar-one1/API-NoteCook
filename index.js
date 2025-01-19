@@ -4,7 +4,8 @@ const sqlite3 = require('sqlite3').verbose();
 const http = require('http');
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
-const db = new sqlite3.Database('DB_Notebook.db'); //database file name
+const dbPath = process.env.DATABASE_PATH;
+//const db = new sqlite3.Database('DB_Notebook.db'); //database file name
 const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
@@ -77,6 +78,29 @@ app.use('/category', categoryModelRouter);
       methods: ["GET", "POST"]
   }
 });*/
+
+let db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Unable to connect to SQLite database:', err.message);
+  } else {
+    console.log('Connected to SQLite database');
+  }
+});
+
+db.serialize(() => {
+  db.run('PRAGMA foreign_keys = ON'); // Enable foreign key support (optional)
+
+  db.get("SELECT 1", (err, result) => {
+    if (err) {
+      console.error('Error connecting to the database:', err.message);
+    } else {
+      console.log('Connected to the database.');
+
+      // You can perform your database operations here
+    }
+  });
+});
+
 const io = require('socket.io')(server, {
   pingTimeout: 60000, // 60 seconds ping timeout
   pingInterval: 25000, // 25 seconds ping interval
@@ -154,19 +178,6 @@ app.get('/isUserConnected/:userId', (req, res) => {
   } 
 });
 
-db.serialize(() => {
-  db.run('PRAGMA foreign_keys = ON'); // Enable foreign key support (optional)
-
-  db.get("SELECT 1", (err, result) => {
-    if (err) {
-      console.error('Error connecting to the database:', err.message);
-    } else {
-      console.log('Connected to the database.');
-
-      // You can perform your database operations here
-    }
-  });
-});
 // Enable CORS
 app.use(cors({
   origin: '*', // Allow all origins for testing
