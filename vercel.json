@@ -1,4 +1,4 @@
-{
+  {
     "version": 2,
     "builds": [
       {
@@ -9,11 +9,12 @@
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "index.js"
+        "dest": "/usr/src/app/index.js"
       }
     ],
     "env": {
-      "DATABASE_PATH": "./database.db"
+      "NODE_ENV": "production"
     }
   }
+  
   
