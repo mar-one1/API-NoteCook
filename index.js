@@ -10,6 +10,7 @@ app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
 const messageModel = require('./Api/Model/chat'); // Replace with your actual message model
 const cors = require('cors');
+require('dotenv').config()
 
 
 const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
@@ -29,6 +30,9 @@ const favRouter = require('./Api/Router/fav_user_recipe_Router');
 const recipeModelRouter = require('./Api/Repo/recipeModelRouter'); 
 const categoryModelRouter = require('./Api/Router/category_Router');
 
+//vercel
+const bookRouter = require('./Api/Router/user_router_controllers')
+app.use("/api/v1/books", bookRouter)
 
 
 app.delete('/cleanup-images', async (req, res) => {

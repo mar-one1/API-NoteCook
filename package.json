@@ -18,10 +18,12 @@
     "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "axios": "^1.5.1",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^8.7.0",
     "body-parser": "^1.20.2",
+    "dotenv": "^16.4.7",
     "express": "^4.21.0",
     "express-validator": "^7.0.1",
     "file-url": "^4.0.0",
@@ -32,6 +34,7 @@
     "mongodb": "^6.3.0",
     "mongoose": "^8.1.1",
     "multer": "^1.4.5-lts.1",
+    "pg": "^8.10.0",
     "sequelize": "^6.37.1",
     "socket.io": "^4.8.0",
     "socket.io-client": "^4.7.5",
