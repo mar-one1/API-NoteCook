@@ -1,74 +1,57 @@
 const express = require("express");
-//const { body, validationResult } = require('express-validator');
 const jwt = require("jsonwebtoken");
-const bcrypt = require('bcryptjs');
-const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
-const user = require("../Model/User");
+const { Pool } = require("pg");
 
 const authRouter = express.Router();
-
 authRouter.use(bodyParser.json());
 
-// Replace this with your actual user database or authentication logic
-/*const users = [
-  { id: 1, username: '1', password: '$2a$10$rtcpkO/lhLClCYhUrDMTFuGV0BGpejIfP7AYdx96.YSQpTqsl55sK' }, // Password: password1
-  { id: 2, username: 'R', password: '$2a$10$s0LOsngxGXQpiDywyvF6ceCBGN238klsEprYMtVWdpnlXruSNvjnO' },
-  ];
-*/
-// Fetch all users from the database
 
-// Secret key for JWT token (change this to a secure value in production)
+
+
+// Secret key for JWT token (use a secure value in production)
 const secretKey = "123456";
 
 // Login route
-authRouter.post("/login", (req, res) => {
+authRouter.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log(username);
-  console.log(password);
-  // Find the user in the database
-  const db = new sqlite3.Database("DB_Notebook.db");
-  db.get(
-    "SELECT * FROM User WHERE username = ?",
-    [username],
-    async (err, user) => {
-      if (err) {
-        return res.status(500).json({ error: "Login failed" });
-      }
+  pool = new Pool({
+    connectionString: process.env.POSTGRES_URL_LOCAL, // Your PostgreSQL connection string
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
+  try {
+    // Find the user in the database
+    const query = "SELECT * FROM users WHERE username = $1";
+    const result = await pool.query(query, [username]);
 
-      if (!user) {
-        return res.status(406).json({ error: "User not found" });
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      if (!isPasswordValid) {
-        return res.status(401).json({ error: "Incorrect password" });
-      }
-
-      // Compare the provided password with the hashed password in the database
-      bcrypt.compare(password, user.password, (err, result) => {
-        if (err || !result) {
-          return res
-            .status(401)
-            .json({ message: "Authentication failed compare" });
-        }
-
-        console.log(user);
-        // Generate a JWT token
-        //const token = jwt.sign({ id: user.Id_user,username: user.username,firstname: user.Firstname_user,icon:user.icon,birthday:user.Birthday_user,lastname:user.Lastname_user,email:user.Email_user,phoneNumber:user.Phonenumber_user,grade:user.Grade_user,status:user.Status_user,password:user.password }, secretKey, {
-        const token = jwt.sign(
-          { id: user.Id_user, username: user.username },
-          secretKey,
-          {
-            expiresIn: "0.5h", // Token expiration time (adjust as needed)
-          }
-        );
-
-        res.status(200).json({ message: "Authentication successful", token });
-      });
-      db.close();
+    if (result.rows.length === 0) {
+      return res.status(406).json({ error: "User not found" });
     }
-  );
+
+    const user = result.rows[0];
+
+    // Compare the provided password with the hashed password in the database
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Incorrect password" });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign(
+      { id: user.id_user, username: user.username },
+      secretKey,
+      {
+        expiresIn: "0.5h", // Token expiration time
+      }
+    );
+
+    res.status(200).json({ message: "Authentication successful", token });
+  } catch (err) {
+    console.error("Error during login:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
 });
+
 module.exports = authRouter;

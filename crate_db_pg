@@ -1,0 +1,134 @@
+-- Create Tables
+CREATE TABLE users (
+    id_user SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    firstname TEXT NOT NULL,
+    lastname TEXT NOT NULL,
+    birthday DATE NOT NULL,
+    email TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    icon INTEGER,
+    password TEXT NOT NULL,
+    grade INTEGER,
+    status INTEGER,
+    url_image TEXT
+);
+
+CREATE TABLE recipes (
+    id_recipe SERIAL PRIMARY KEY,
+    icon INTEGER,
+    fav INTEGER DEFAULT 0,
+    name TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    unique_key TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id_user) ON DELETE CASCADE
+);
+
+CREATE TABLE detailrecipes (
+    id_detail_recipe SERIAL PRIMARY KEY,
+    description TEXT NOT NULL,
+    level INTEGER,
+    preparation_time TIME NOT NULL,
+    rating INTEGER CHECK (rating BETWEEN 0 AND 5),
+    calories INTEGER,
+    recipe_id INTEGER NOT NULL,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id_recipe) ON DELETE CASCADE
+);
+
+CREATE TABLE ingredientrecipes (
+    id_ingredient_recipe SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    unit TEXT NOT NULL,
+    detail_recipe_id INTEGER NOT NULL,
+    FOREIGN KEY (detail_recipe_id) REFERENCES detailrecipes(id_detail_recipe) ON DELETE CASCADE
+);
+
+CREATE TABLE steprecipes (
+    id_step_recipe SERIAL PRIMARY KEY,
+    description TEXT NOT NULL,
+    image TEXT,
+    time TIME,
+    recipe_id INTEGER NOT NULL,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id_recipe) ON DELETE CASCADE
+);
+
+CREATE TABLE reviewrecipes (
+    id_review_recipe SERIAL PRIMARY KEY,
+    comment TEXT NOT NULL,
+    rating INTEGER CHECK (rating BETWEEN 0 AND 5),
+    recipe_id INTEGER NOT NULL,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id_recipe) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  recipeid INTEGER,
+  senderid INTEGER,
+  receiverid INTEGER,
+  message TEXT,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert Data into Users Table
+INSERT INTO users (username, firstname, lastname, birthday, email, phone_number, icon, password, grade, status)
+VALUES
+  ('user1', 'John', 'Doe', '1985-06-15', 'john.doe@example.com', '1234567890', 1, 'password123', 1, 1),
+  ('user2', 'Jane', 'Smith', '1990-08-20', 'jane.smith@example.com', '0987654321', 2, 'securepass', 2, 1),
+  ('user3', 'Alice', 'Brown', '1988-03-25', 'alice.brown@example.com', '1122334455', 3, 'alicepass', 1, 1),
+  ('user4', 'Bob', 'White', '1995-12-10', 'bob.white@example.com', '2233445566', 4, 'bobsecure', 3, 1);
+
+-- Insert Data into Recipes Table
+INSERT INTO recipes (icon, fav, name, user_id)
+VALUES
+  (123, 1, 'Spaghetti Bolognese', 2),
+  (456, 0, 'Chocolate Cake', 3),
+  (789, 1, 'Chicken Curry', 1),
+  (321, 0, 'Caesar Salad', 2),
+  (654, 1, 'Tiramisu', 3),
+  (111, 1, 'Lasagna', 4),
+  (222, 0, 'Apple Pie', 2),
+  (333, 1, 'Beef Stroganoff', 1),
+  (444, 0, 'Greek Salad', 3),
+  (555, 1, 'Mango Sorbet', 4),
+  (666, 1, 'Chicken Alfredo', 1),
+  (777, 0, 'Strawberry Shortcake', 2),
+  (888, 1, 'Tomato Soup', 3),
+  (999, 0, 'Cheeseburger', 4),
+  (1010, 1, 'Pasta Primavera', 1);
+
+-- Insert Data into DetailRecipes Table
+INSERT INTO detailrecipes (description, level, preparation_time, rating, calories, recipe_id)
+VALUES
+  ('Cook pasta until al dente', 2, '00:20:00', 4, 300, 1),
+  ('Preheat oven to 350°F', 1, '00:10:00', 5, 150, 2),
+  ('Simmer chicken in sauce', 3, '00:30:00', 4, 400, 3),
+  ('Toss lettuce with dressing', 1, '00:05:00', 4, 100, 4),
+  ('Mix mascarpone and sugar', 2, '00:15:00', 5, 250, 5);
+
+-- Insert Data into IngredientRecipes Table
+INSERT INTO ingredientrecipes (name, quantity, unit, detail_recipe_id)
+VALUES
+  ('Pasta', 200, 'g', 1),
+  ('Olive Oil', 2, 'tbsp', 2),
+  ('Chicken Thighs', 400, 'g', 3),
+  ('Lettuce', 150, 'g', 4),
+  ('Mascarpone Cheese', 250, 'g', 5);
+
+-- Insert Data into StepRecipes Table
+INSERT INTO steprecipes (description, image, time, recipe_id)
+VALUES
+  ('Boil water for pasta', '123', '00:05:00', 1),
+  ('Grease baking pan', '456', '00:03:00', 2),
+  ('Stir in tomato sauce', '789', '00:08:00', 3),
+  ('Toss lettuce with dressing', '321', '00:05:00', 4),
+  ('Layer cheese mixture and ladyfingers', '654', '00:10:00', 5);
+
+-- Insert Data into ReviewRecipes Table
+INSERT INTO reviewrecipes (comment, rating, recipe_id)
+VALUES
+  ('Delicious! Will make it again.', 5, 1),
+  ('Perfect cake, my family loved it.', 5, 2),
+  ('The curry was too spicy for me.', 3, 3),
+  ('Great salad recipe!', 4, 4),
+  ('Superb dessert, a must-try.', 5, 5);
