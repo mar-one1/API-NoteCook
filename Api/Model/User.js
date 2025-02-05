@@ -1,4 +1,4 @@
-const pool  = require("../Model/database");
+const pool  = require("../../database");
 const bcrypt = require('bcryptjs');
 const saltRounds = 10;
 const fs = require("fs");
