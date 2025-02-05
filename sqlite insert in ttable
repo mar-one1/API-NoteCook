@@ -1,3 +1,5 @@
+
+// sql
 -- Insert 100 rows into the Recipe table
 INSERT INTO Recipe (Icon, Favorite, Name, User_ID, Category_ID)
 VALUES
@@ -68,3 +70,66 @@ VALUES
   ('Superb dessert, a must-try.', 5, 5),
   -- Add more rows with data for other recipes
   ;
+
+//pg 
+-- Insert 100 rows into the Recipe table
+INSERT INTO recipes (icon, fav, name, user_id, category_id)
+VALUES
+  (123, 1, 'Spaghetti Bolognese', 2, 5),
+  (456, 0, 'Chocolate Cake', 3, 4),
+  (789, 1, 'Chicken Curry', 1, 7),
+  (321, 0, 'Caesar Salad', 2, 2),
+  (654, 1, 'Tiramisu', 3, 4),
+  (111, 1, 'Lasagna', 4, 5),
+  (222, 0, 'Apple Pie', 2, 3),
+  (333, 1, 'Beef Stroganoff', 1, 5),
+  (444, 0, 'Greek Salad', 3, 2),
+  (555, 1, 'Mango Sorbet', 4, 4),
+  (666, 1, 'Chicken Alfredo', 1, 6),
+  (777, 0, 'Strawberry Shortcake', 2, 3),
+  (888, 1, 'Tomato Soup', 3, 7),
+  (999, 0, 'Cheeseburger', 4, 1),
+  (1010, 1, 'Pasta Primavera', 1, 5);
+  -- Continue with more rows as needed...
+-- Insert data into Detail_Recipe table
+
+INSERT INTO detailrecipes (description, level, preparation_time, rating, calories, recipe_id)
+VALUES
+  ('Cook pasta until al dente', 2, '00:20:00', 4, 300, 1),
+  ('Preheat oven to 350°F', 1, '00:10:00', 5, 150, 2),
+  ('Simmer chicken in sauce', 3, '00:30:00', 4, 400, 3),
+  ('Toss lettuce with dressing', 1, '00:05:00', 4, 100, 4),
+  ('Mix mascarpone and sugar', 2, '00:15:00', 5, 250, 5);
+  -- Add more rows for other recipes
+Inserting Data into the IngredientsRecipes Table
+-- Insert data into Ingredients_Recipe table
+
+INSERT INTO ingredientrecipes (name, quantity, unit, detail_recipe_id)
+VALUES
+  ('Pasta', 200, 'g', 1),
+  ('Olive Oil', 2, 'tbsp', 2),
+  ('Chicken Thighs', 400, 'g', 3),
+  ('Lettuce', 150, 'g', 4),
+  ('Mascarpone Cheese', 250, 'g', 5);
+  -- Add more rows for other recipes
+Inserting Data into the StepRecipes Table
+-- Insert data into Step_Recipe table
+INSERT INTO steprecipes (description, image, time, recipe_id)
+VALUES
+  ('Boil water for pasta', 'image_123.jpg', '00:05:00', 1),
+  ('Grease baking pan', 'image_456.jpg', '00:03:00', 2),
+  ('Stir in tomato sauce', 'image_789.jpg', '00:08:00', 3),
+  ('Toss lettuce with dressing', 'image_321.jpg', '00:05:00', 4),
+  ('Layer cheese mixture and ladyfingers', 'image_654.jpg', '00:10:00', 5);
+  -- Add more rows for other recipes
+Inserting Data into the ReviewRecipes Table
+
+-- Insert data into Review_Recipe table
+INSERT INTO reviewrecipes (comment, rating, recipe_id)
+VALUES
+  ('Delicious! Will make it again.', 5, 1),
+  ('Perfect cake, my family loved it.', 5, 2),
+  ('The curry was too spicy for me.', 3, 3),
+  ('Great salad recipe!', 4, 4),
+  ('Superb dessert, a must-try.', 5, 5);
+  -- Add more rows for other recipes

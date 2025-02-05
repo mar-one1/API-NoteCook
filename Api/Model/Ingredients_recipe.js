@@ -1,86 +1,91 @@
-// ingredient_recipe.model.js
-
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 
 class IngredientRecipe {
-  constructor(id_Ingeredient_recipe, Frk_idRecipe, Frk_idIngredient) {
-    this.id_Ingeredient_recipe = id_Ingeredient_recipe;
-    this.Frk_idRecipe = Frk_idRecipe;
-    this.Frk_idIngredient = Frk_idIngredient;
+  constructor(id_ingredient_recipe, detail_recipe_id, name, quantity, unit) {
+    this.id_ingredient_recipe = id_ingredient_recipe;
+    this.detail_recipe_id = detail_recipe_id;
+    this.name = name;
+    this.quantity = quantity;
+    this.unit = unit;
   }
+  static pool = new Pool({
+    connectionString: process.env.POSTGRES_URL_LOCAL, // Your PostgreSQL connection string
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
+
 
 
   // Create a new ingredient recipe association
-  static create(recipeId, ingredientId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO ingredients_recipe (recipeId, Frk_idIngredient) VALUES (?, ?)',
-      [recipeId, ingredientId],
-      function(err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newIngredientRecipe = new IngredientRecipe(this.lastID, recipeId, ingredientId);
-        callback(null, newIngredientRecipe);
-      }
-    );
-    db.close();
+  static async create(detailRecipeId, name, quantity, unit) {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'INSERT INTO ingredientrecipes (detail_recipe_id, name, quantity, unit) VALUES ($1, $2, $3, $4) RETURNING *',
+        [detailRecipeId, name, quantity, unit]
+      );
+
+      const row = result.rows[0];
+      return new IngredientRecipe(row.id_ingredient_recipe, row.detail_recipe_id, row.name, row.quantity, row.unit);
+    } catch (err) {
+      console.error('Error creating ingredient recipe association:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   // Retrieve all ingredient recipe associations
-  static getAll(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all('SELECT * FROM ingredients_recipe', (err, rows) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      const associations = rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.recipeId, row.Frk_idIngredient));
-      callback(null, associations);
-    });
-    db.close();
+  static async getAll() {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query('SELECT * FROM ingredientrecipes');
+      return result.rows.map(
+        row => new IngredientRecipe(row.id_ingredient_recipe, row.detail_recipe_id, row.name, row.quantity, row.unit)
+      );
+    } catch (err) {
+      console.error('Error fetching all ingredient recipe associations:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
-  // Retrieve all ingredient recipe associations for a recipe
-  static getByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all('SELECT * FROM ingredients_recipe WHERE recipeId = ?', [recipeId], (err, rows) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      const associations = rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.recipeId, row.Frk_idIngredient));
-      callback(null, associations);
-    });
-    db.close();
+  // Retrieve all ingredient recipe associations for a recipe detail ID
+  static async getByDetailRecipeId(detailRecipeId) {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT * FROM ingredientrecipes WHERE detail_recipe_id = $1',
+        [detailRecipeId]
+      );
+
+      return result.rows.map(
+        row => new IngredientRecipe(row.id_ingredient_recipe, row.detail_recipe_id, row.name, row.quantity, row.unit)
+      );
+    } catch (err) {
+      console.error('Error fetching ingredient recipes by detail recipe ID:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
-  // Retrieve all ingredient recipe associations for a specific ingredient ID
-  static getByIngredientId(ingredientId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all('SELECT * FROM ingredients_recipe WHERE Frk_idIngredient = ?', [ingredientId], (err, rows) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      const associations = rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.recipeId, row.Frk_idIngredient));
-      callback(null, associations);
-    });
-    db.close();
-  }
+  // Delete all ingredient recipe associations for a recipe detail ID
+  static async deleteByDetailRecipeId(detailRecipeId) {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'DELETE FROM ingredientrecipes WHERE detail_recipe_id = $1',
+        [detailRecipeId]
+      );
 
-  // Delete all ingredient recipe associations for a recipe
-  static deleteByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run('DELETE FROM ingredients_recipe WHERE recipeId = ?', [recipeId], function(err) {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null);
-    });
-    db.close();
+      return result.rowCount; // Returns the number of deleted rows
+    } catch (err) {
+      console.error('Error deleting ingredient recipes by detail recipe ID:', err);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }
 

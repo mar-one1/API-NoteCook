@@ -1,5 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
-const Recipe = require('../Model/Recipe'); // Import the Recipe model
+const { Pool } = require('pg'); // Import PostgreSQL pool
 
 class ReviewRecipe {
   constructor(id, detailReview, rateReview, recipeId) {
@@ -9,121 +8,136 @@ class ReviewRecipe {
     this.recipeId = recipeId;
   }
 
-  static createReviewRecipe(detailReview, rateReview, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)',
-      [detailReview, rateReview, recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newReviewRecipe = new ReviewRecipe(
-          this.lastID,
-          detailReview,
-          rateReview,
-          recipeId
-        );
-        callback(null, newReviewRecipe);
-      }
-    );
-    db.close();
+  // PostgreSQL connection pool
+  static pool = new Pool({
+    connectionString: process.env.POSTGRES_URL_LOCAL, // Your PostgreSQL connection string
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
+
+  // Create a new review recipe
+  static async createReviewRecipe(detailReview, rateReview, recipeId, callback) {
+    try {
+      const client = await ReviewRecipe.pool.connect();
+      const result = await client.query(
+        'INSERT INTO reviewrecipes (comment, rating, recipe_id) VALUES ($1, $2, $3) RETURNING *',
+        [detailReview, rateReview, recipeId]
+      );
+
+      const newReviewRecipe = new ReviewRecipe(
+        result.rows[0].id_review_recipe,
+        result.rows[0].comment,
+        result.rows[0].rating,
+        result.rows[0].recipe_id
+      );
+
+      callback(null, newReviewRecipe);
+      client.release();
+    } catch (err) {
+      console.error('Error creating review recipe:', err);
+      callback(err, null);
+    }
   }
 
-  static getAllReviewRecipes(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all('SELECT * FROM Review_recipe', (err, rows) => {
-      if (err) {
-        callback(err, null);
-        return;
-      }
-      const reviewRecipes = rows.map((row) => {
+  // Get all review recipes
+  static async getAllReviewRecipes(callback) {
+    try {
+      const client = await ReviewRecipe.pool.connect();
+      const result = await client.query('SELECT * FROM reviewrecipes');
+      const reviewRecipes = result.rows.map((row) => {
         return new ReviewRecipe(
-          row.Id_Review_recipe,
-          row.Detail_Review_recipe,
-          row.Rate_Review_recipe,
-          row.FRK_recipe
+          row.id_review_recipe,
+          row.comment,
+          row.rating,
+          row.recipe_id
         );
       });
+
       callback(null, reviewRecipes);
-    });
-    db.close();
+      client.release();
+    } catch (err) {
+      console.error('Error getting all review recipes:', err);
+      callback(err, null);
+    }
   }
 
-
-
-
-
-  static getReviewsByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all(
-      'SELECT * FROM Review_recipe WHERE FRK_recipe = ?',
-      [recipeId],
-      (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const reviews = rows.map((row) => {
-          return new ReviewRecipe(
-            row.Id_Review_recipe,
-            row.Detail_Review_recipe,
-            row.Rate_Review_recipe,
-            row.FRK_recipe
-          );
-        });
-        callback(null, reviews);
-      }
-    );
-    db.close();
-  }
-
-static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
-  db.run(
-    'UPDATE Review_recipe SET Detail_Review_recipe = ?, Rate_Review_recipe = ?, FRK_recipe = ? WHERE Id_Review_recipe = ?',
-    [detailReview, rateReview, recipeId, reviewId],
-    function (err) {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (this.changes === 0) {
-        callback(null, null); // Review recipe not found or not updated
-        return;
-      }
-      const updatedReviewRecipe = new ReviewRecipe(
-        reviewId,
-        detailReview,
-        rateReview,
-        recipeId
+  // Get reviews by recipe ID
+  static async getReviewsByRecipeId(recipeId, callback) {
+    try {
+      const client = await ReviewRecipe.pool.connect();
+      const result = await client.query(
+        'SELECT * FROM reviewrecipes WHERE recipe_id = $1',
+        [recipeId]
       );
-      callback(null, updatedReviewRecipe);
-    }
-  );
-  db.close();
-}
 
-static deleteReviewRecipe(reviewId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
-  db.run(
-    'DELETE FROM Review_recipe WHERE Id_Review_recipe = ?',
-    [reviewId],
-    function (err) {
-      if (err) {
-        callback(err);
-        return;
-      }
-      if (this.changes === 0) {
-        callback(null, false); // Review recipe not found or not deleted
-        return;
-      }
-      callback(null, true); // Review recipe deleted successfully
+      const reviews = result.rows.map((row) => {
+        return new ReviewRecipe(
+          row.id_review_recipe,
+          row.comment,
+          row.rating,
+          row.recipe_id
+        );
+      });
+
+      callback(null, reviews);
+      client.release();
+    } catch (err) {
+      console.error('Error getting reviews by recipe ID:', err);
+      callback(err, null);
     }
-  );
-  db.close();
-}
+  }
+
+  // Update a review recipe
+  static async updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
+    try {
+      const client = await ReviewRecipe.pool.connect();
+      const result = await client.query(
+        'UPDATE reviewrecipes SET comment = $1, rating = $2, recipe_id = $3 WHERE id_review_recipe = $4 RETURNING *',
+        [detailReview, rateReview, recipeId, reviewId]
+      );
+
+      if (result.rowCount === 0) {
+        callback(null, null); // Review recipe not found or not updated
+        client.release();
+        return;
+      }
+
+      const updatedReviewRecipe = new ReviewRecipe(
+        result.rows[0].id_review_recipe,
+        result.rows[0].comment,
+        result.rows[0].rating,
+        result.rows[0].recipe_id
+      );
+
+      callback(null, updatedReviewRecipe);
+      client.release();
+    } catch (err) {
+      console.error('Error updating review recipe:', err);
+      callback(err, null);
+    }
+  }
+
+  // Delete a review recipe
+  static async deleteReviewRecipe(reviewId, callback) {
+    try {
+      const client = await ReviewRecipe.pool.connect();
+      const result = await client.query(
+        'DELETE FROM reviewrecipes WHERE id_review_recipe = $1',
+        [reviewId]
+      );
+
+      if (result.rowCount === 0) {
+        callback(null, false); // Review recipe not found or not deleted
+        client.release();
+        return;
+      }
+
+      callback(null, true); // Review recipe deleted successfully
+      client.release();
+    } catch (err) {
+      console.error('Error deleting review recipe:', err);
+      callback(err, null);
+    }
+  }
 }
 
 module.exports = ReviewRecipe;

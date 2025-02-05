@@ -1,6 +1,6 @@
 -- SQLite
 -- Create the User table
-/*CREATE TABLE User (
+CREATE TABLE User (
     Id_user INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
     Firstname_user TEXT,
@@ -12,6 +12,7 @@
     Password_user TEXT,
     Grade_user INTEGER,
     Status_user INTEGER,
+    Url_image TEXT,
     CONSTRAINT unique_username UNIQUE (username)
 );
 
@@ -21,7 +22,9 @@ CREATE TABLE Recipe (
     Icon_recipe INTEGER,
     Fav_recipe INTEGER,
     Nom_recipe TEXT,
+    unique_key_recipe TEXT,
     Frk_user INTEGER,
+    Frk_categorie INTEGER,
     FOREIGN KEY (Frk_user) REFERENCES User(Id_user) ON DELETE CASCADE
 );
 
@@ -72,7 +75,7 @@ CREATE TABLE Produit (
     Produit TEXT,
     PoidProduit TEXT
 );
-*/
+
 -- Create the FavoriteUserRecipe table
 CREATE TABLE FavoriteUserRecipe (
     favRecipe_id INTEGER PRIMARY KEY,
@@ -81,3 +84,92 @@ CREATE TABLE FavoriteUserRecipe (
     FOREIGN KEY (FRK_user) REFERENCES User(Id_user),
     FOREIGN KEY (FRK_recipe) REFERENCES Recipe(Id_recipe)
 );
+
+// PR
+-- SQLite
+-- Create the User table
+CREATE TABLE "User" (
+    "Id_user"  SERIAL PRIMARY KEY,
+    username TEXT,
+    "Firstname_user" TEXT,
+    "Lastname_user" TEXT,
+    "Birthday_user" TEXT,
+    "Email_user" TEXT,
+    "Phonenumber_user" TEXT,
+    "Icon_user" INTEGER,
+    "Password_user" TEXT,
+    "Grade_user" INTEGER,
+    "Status_user" INTEGER,
+    "Url_image" TEXT,
+    CONSTRAINT unique_username UNIQUE (username)
+);
+
+-- Create the Recipe table
+CREATE TABLE "Recipe" (
+    "Id_recipe"  SERIAL PRIMARY KEY,
+    "Icon_recipe" INTEGER,
+    "Fav_recipe" INTEGER,
+    "Nom_recipe" TEXT,
+    "unique_key_recipe" TEXT,
+    "Frk_user" INTEGER,
+    "Frk_categorie" INTEGER,
+    FOREIGN KEY ("Frk_user") REFERENCES "User" ("Id_user") ON DELETE CASCADE
+);
+
+-- Create the DetailRecipe table
+CREATE TABLE "DetailRecipe" (
+    "Id_detail_recipe"  SERIAL PRIMARY KEY,
+    "Dt_recipe" TEXT,
+    "Dt_recipe_time" TEXT,
+    "Rate_recipe" INTEGER,
+    "Level_recipe" INTEGER,
+    "Calories_recipe" INTEGER,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
+);
+
+-- Create the ReviewRecipe table
+CREATE TABLE "ReviewRecipe" (
+    "Id_review_recipe"  SERIAL PRIMARY KEY,
+    "Detail_review_recipe" TEXT,
+    "Rate_review_recipe" INTEGER,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
+);
+
+-- Create the IngredientRecipe table
+CREATE TABLE "IngredientRecipe" (
+    "Id_ingredient_recipe"  SERIAL PRIMARY KEY,
+    "Ingredient_recipe" TEXT,
+    "PoidIngredient_recipe" REAL,
+    "unit" TEXT,
+    "FRK_detail_recipe" INTEGER,
+    FOREIGN KEY ("FRK_detail_recipe") REFERENCES "DetailRecipe"("Id_detail_recipe") ON DELETE CASCADE
+);
+
+-- Create the StepRecipe table
+CREATE TABLE "StepRecipe" (
+    "Id_step_recipe"  SERIAL PRIMARY KEY,
+    "Detail_step_recipe" TEXT,
+    "Image_step_recipe" TEXT,
+    "Time_step_recipe" TEXT,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
+);
+
+-- Create the Produit table
+CREATE TABLE "Produit" (
+    "Id_Produit"  SERIAL PRIMARY KEY,
+    "Produit" TEXT,
+    "PoidProduit" TEXT
+);
+
+-- Create the FavoriteUserRecipe table
+CREATE TABLE "FavoriteUserRecipe" (
+    "favRecipe_id"  SERIAL PRIMARY KEY,
+    "FRK_user" INTEGER,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_user") REFERENCES "User"("Id_user"),
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
+);
+
