@@ -73,13 +73,14 @@ VALUES
 
 //pg 
 -- Insert 100 rows into the Recipe table
-INSERT INTO recipes (icon, fav, name, user_id, category_id)
+INSERT INTO "Recipe" ("Icon_recipe", "Fav_recipe", "Nom_recipe", "Frk_user", "Frk_categorie")
 VALUES
   (123, 1, 'Spaghetti Bolognese', 2, 5),
   (456, 0, 'Chocolate Cake', 3, 4),
   (789, 1, 'Chicken Curry', 1, 7),
   (321, 0, 'Caesar Salad', 2, 2),
   (654, 1, 'Tiramisu', 3, 4),
+  -- Add 95 more rows with random data
   (111, 1, 'Lasagna', 4, 5),
   (222, 0, 'Apple Pie', 2, 3),
   (333, 1, 'Beef Stroganoff', 1, 5),
@@ -89,47 +90,55 @@ VALUES
   (777, 0, 'Strawberry Shortcake', 2, 3),
   (888, 1, 'Tomato Soup', 3, 7),
   (999, 0, 'Cheeseburger', 4, 1),
-  (1010, 1, 'Pasta Primavera', 1, 5);
-  -- Continue with more rows as needed...
--- Insert data into Detail_Recipe table
+  (1010, 1, 'Pasta Primavera', 1, 5),
+  -- Continue with more rows...
+  -- (You can generate random data for the remaining rows.)
+  -- ...
+  ;
 
-INSERT INTO detailrecipes (description, level, preparation_time, rating, calories, recipe_id)
+  INSERT INTO "DetailRecipe" ("Dt_recipe", "Level_recipe", "Dt_recipe_time", "Rate_recipe", "Calories_recipe", "FRK_recipe")
 VALUES
-  ('Cook pasta until al dente', 2, '00:20:00', 4, 300, 1),
-  ('Preheat oven to 350°F', 1, '00:10:00', 5, 150, 2),
-  ('Simmer chicken in sauce', 3, '00:30:00', 4, 400, 3),
-  ('Toss lettuce with dressing', 1, '00:05:00', 4, 100, 4),
-  ('Mix mascarpone and sugar', 2, '00:15:00', 5, 250, 5);
-  -- Add more rows for other recipes
-Inserting Data into the IngredientsRecipes Table
--- Insert data into Ingredients_Recipe table
+  ('Cook pasta until al dente', 2, 20, 4, 300, 1),
+  ('Preheat oven to 350°F', 1, 10, 5, 150, 2),
+  ('Simmer chicken in sauce', 3, 30, 4, 400, 3),
+  ('Toss lettuce with dressing', 1, 5, 4, 100, 4),
+  ('Mix mascarpone and sugar', 2, 15, 5, 250, 5),
+  -- Add more rows with data for other recipes
+  ;
+Inserting Data into Ingredients_Recipe Table (TABLE_INGREDIENT_RECIPE):
 
-INSERT INTO ingredientrecipes (name, quantity, unit, detail_recipe_id)
-VALUES
-  ('Pasta', 200, 'g', 1),
-  ('Olive Oil', 2, 'tbsp', 2),
-  ('Chicken Thighs', 400, 'g', 3),
-  ('Lettuce', 150, 'g', 4),
-  ('Mascarpone Cheese', 250, 'g', 5);
-  -- Add more rows for other recipes
-Inserting Data into the StepRecipes Table
--- Insert data into Step_Recipe table
-INSERT INTO steprecipes (description, image, time, recipe_id)
-VALUES
-  ('Boil water for pasta', 'image_123.jpg', '00:05:00', 1),
-  ('Grease baking pan', 'image_456.jpg', '00:03:00', 2),
-  ('Stir in tomato sauce', 'image_789.jpg', '00:08:00', 3),
-  ('Toss lettuce with dressing', 'image_321.jpg', '00:05:00', 4),
-  ('Layer cheese mixture and ladyfingers', 'image_654.jpg', '00:10:00', 5);
-  -- Add more rows for other recipes
-Inserting Data into the ReviewRecipes Table
 
--- Insert data into Review_Recipe table
-INSERT INTO reviewrecipes (comment, rating, recipe_id)
+INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe","unit", "FRK_detail_recipe")
+VALUES
+  ('Pasta', '200','g', 1),
+  ('Olive Oil', '2','tbsp', 2),
+  ('Chicken Thighs', '400','g', 3),
+  ('Lettuce', '150','g', 4),
+  ('Mascarpone Cheese', '250','g', 5),
+  -- Add more rows with data for other recipes
+  ;
+Inserting Data into Step_Recipe Table (TABLE_STEP_RECIPE):
+
+
+INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
+VALUES
+  ('Boil water for pasta', '123', '5 min', 1),
+  ('Grease baking pan', '456', '3 min', 2),
+  ('Stir in tomato sauce', '789', '8 min', 3),
+  ('Toss lettuce with dressing', '321', '5 min', 4),
+  ('Layer cheese mixture and ladyfingers', '654', '10 min', 5),
+  -- Add more rows with data for other recipes
+  ;
+
+Inserting Data into Review_Recipe Table (TABLE_REVIEW_RECIPE):
+
+
+INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
 VALUES
   ('Delicious! Will make it again.', 5, 1),
   ('Perfect cake, my family loved it.', 5, 2),
   ('The curry was too spicy for me.', 3, 3),
   ('Great salad recipe!', 4, 4),
-  ('Superb dessert, a must-try.', 5, 5);
-  -- Add more rows for other recipes
+  ('Superb dessert, a must-try.', 5, 5),
+  -- Add more rows with data for other recipes
+  ;
