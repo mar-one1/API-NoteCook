@@ -1,4 +1,4 @@
-const sqlite3 = require("sqlite3").verbose();
+const pool  = require("../Model/database");
 const bcrypt = require('bcryptjs');
 const saltRounds = 10;
 const fs = require("fs");
@@ -40,6 +40,8 @@ class User {
     this.url = url;
   }
 
+
+
   /**
    * @swagger
    * /users:
@@ -64,7 +66,7 @@ class User {
    *       '500':
    *         description: Internal server error
    */
-  static createUser(
+  static async createUser(
     username,
     firstname,
     lastname,
@@ -78,76 +80,59 @@ class User {
     url,
     callback
   ) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    const client = await pool.connect(); // Getting a client from the pool
     try {
       // Check if the user already exists
-      db.get(
-        "SELECT * FROM User WHERE username = ?",
-        [username],
-        function (err, row) {
-          if (err) {
-            db.close();
-            callback(err);
-            return;
-          }
-
-          if (row) {
-            db.close();
-            console.log("User already exists");
-            // User already exists, handle accordingly (e.g., return an error)
-            callback(new Error("User already exists"));
-            return;
-          }
-
-          // User doesn't exist, insert them into the database
-          db.run(
-            "INSERT INTO User (username, Firstname_user, Lastname_user, Birthday_user, Email_user, Phonenumber_user, Icon_user, password, Grade_user, Status_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-              username,
-              firstname,
-              lastname,
-              birthday,
-              email,
-              phoneNumber,
-              icon,
-              password,
-              grade,
-              status,
-            ],
-            function (err) {
-              if (err) {
-                db.close();
-                callback(err);
-                return;
-              }
-
-              // Fetch the inserted user
-              const newUser = new User(
-                this.lastID,
-                username,
-                firstname,
-                lastname,
-                birthday,
-                email,
-                phoneNumber,
-                icon,
-                password,
-                grade,
-                status,
-                url
-              );
-              db.close();
-              callback(null, newUser);
-            }
-          );
-        }
+      const checkQuery = 'SELECT * FROM "User" WHERE username = $1';
+      const checkRes = await client.query(checkQuery, [username]);
+  
+      if (checkRes.rows.length > 0) {
+        console.log("User already exists");
+        callback(new Error("User already exists"));
+        return;
+      }
+  
+      // User doesn't exist, insert them into the database
+      const insertQuery =
+        'INSERT INTO "User" (username, "Firstname_user", "Lastname_user", "Birthday_user", "Email_user", "Phonenumber_user", "Icon_user", password, "Grade_user", "Status_user") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *';
+      const insertRes = await client.query(insertQuery, [
+        username,
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        password,
+        grade,
+        status,
+      ]);
+  
+      // Create new user object from the inserted row
+      const newUser = new User(
+        insertRes.rows[0].Id_user,
+        username,
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        password,
+        grade,
+        status,
+        url
       );
+  
+      callback(null, newUser);
     } catch (err) {
-      db.close();
       console.error("Error Create User", err);
       callback(err, null);
+    } finally {
+      client.release(); // Release the client back to the pool
     }
   }
+  
 
   /**
    * @swagger
@@ -173,157 +158,145 @@ class User {
    *       '500':
    *         description: Internal server error
    */
-  static getUserById(id, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async getUserById(id, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
     try {
-      db.get("SELECT * FROM User WHERE Id_user = ?", [id], (err, row) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!row) {
-          callback(null, null); // User not found
-          return;
-        }
-        const user = new User(
-          row.Id_user,
-          row.username,
-          row.Firstname_user,
-          row.Lastname_user,
-          row.Birthday_user,
-          row.Email_user,
-          row.Phonenumber_user,
-          (row.Icon_user = null),
-          row.password,
-          row.Grade_user,
-          row.Status_user,
-          row.Url_image
-        );
-        callback(null, user);
-      });
-      db.close();
+      const query = 'SELECT * FROM "User" WHERE "Id_user" = $1';
+      const res = await client.query(query, [id]);
+  
+      if (res.rows.length === 0) {
+        callback(null, null); // User not found
+        return;
+      }
+  
+      const row = res.rows[0];
+      const user = new User(
+        row.Id_user,
+        row.username,
+        row.Firstname_user,
+        row.Lastname_user,
+        row.Birthday_user,
+        row.Email_user,
+        row.Phonenumber_user,
+        row.Icon_user,  // Fix the Icon_user field assignment
+        row.password,
+        row.Grade_user,
+        row.Status_user,
+        row.Url_image
+      );
+      callback(null, user);
     } catch (err) {
-      db.close();
       console.error("Error getting user by id: " + id, err);
       callback(err, null);
+    } finally {
+      client.release(); // Release the client after use
     }
   }
+  
 
   // Helper function to get all image paths from the database
-  static getAllImagePathsFromDatabase(callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    db.all("SELECT Url_image FROM User", [], (err, rows) => {
-      if (err) {
-        db.close();
-        console.error("Error getting all image paths from database:", err);
-        return callback(err, null);
-      }
-      const paths = rows.map((row) => row.Url_image);
-      console.log("path geting form db :" + paths);
-      db.close();
+  static async getAllImagePathsFromDatabase(callback) {
+    const client = await pool.connect();
+    try {
+      const query = 'SELECT "Url_image" FROM "User"';
+      const res = await client.query(query);
+  
+      const paths = res.rows.map((row) => row.Url_image);
+      console.log("Paths getting from db:", paths);
+  
       callback(null, paths);
-    });
-  }
-
-  static async UpdateUserImage(username, imagebyte, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      db.run(
-        "UPDATE User SET Url_image = ? WHERE username = ?",
-        [imagebyte, username],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
-          }
-          if (this.changes === 0) {
-            callback(null, null); // User not found or not updated
-            return;
-          }
-          // If the user doesn't exist, add them to the database
-          callback(null, imagebyte);
-          console.log(imagebyte);
-        }
-      );
-      db.close();
     } catch (err) {
-      db.close();
-      console.error("Error Update User Image", err);
+      console.error("Error getting all image paths from database:", err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
-  static getUserImage(username, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async updateUserImage(username, imagebyte, callback) {
+    const client = await pool.connect();
     try {
-      db.get(
-        "SELECT Icon_user FROM User WHERE username = ?",
-        [username],
-        (err, row) => {
-          if (err) {
-            db.close();
-            callback(err, null);
-            return;
-          }
-          if (!row) {
-            db.close();
-            callback(null, null); // User not found
-            return;
-          }
-          db.close();
-          // Pass the retrieved image URL or binary data to the callback
-          callback(null, row.Icon_user);
-        }
-      );
-      UpdateUserImage;
+      const query = 'UPDATE "User" SET "Url_image" = $1 WHERE username = $2';
+      const res = await client.query(query, [imagebyte, username]);
+  
+      if (res.rowCount === 0) {
+        callback(null, null); // User not found or not updated
+        return;
+      }
+  
+      // Successfully updated user image
+      callback(null, imagebyte);
+      console.log("Image updated:", imagebyte);
     } catch (err) {
-      db.close();
-      console.error("Error get User Image", err);
+      console.error("Error updating user image", err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
-  static getUserByUsername(usernameUser, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async getUserImage(username, callback) {
+    const client = await pool.connect();
     try {
-      db.get(
-        "SELECT * FROM User WHERE username = ?",
-        [usernameUser],
-        (err, row) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-          if (!row) {
-            callback(null, null); // User not found
-            return;
-          }
-          const user = new User(
-            row.Id_user,
-            row.username,
-            row.Firstname_user,
-            row.Lastname_user,
-            row.Birthday_user,
-            row.Email_user,
-            row.Phonenumber_user,
-            (row.Icon_user = null),
-            row.password,
-            row.Grade_user,
-            row.Status_user,
-            row.Url_image
-          );
-          callback(null, user);
-        }
-      );
-      db.close();
+      const query = 'SELECT Icon_user FROM "User" WHERE username = $1';
+      const res = await client.query(query, [username]);
+  
+      if (res.rows.length === 0) {
+        callback(null, null); // User not found
+        return;
+      }
+  
+      // Pass the retrieved image URL or binary data to the callback
+      callback(null, res.rows[0].Icon_user);
     } catch (err) {
-      db.close();
+      console.error("Error getting user image", err);
+      callback(err, null);
+    } finally {
+      client.release();
+    }
+  }
+  
+
+  static async getUserByUsername(usernameUser, callback) {
+    const client = await pool.connect();
+    try {
+      const query = 'SELECT * FROM "User" WHERE username = $1';
+      const res = await client.query(query, [usernameUser]);
+  
+      if (res.rows.length === 0) {
+        callback(null, null); // User not found
+        return;
+      }
+  
+      const row = res.rows[0];
+      const user = new User(
+        row.Id_user,
+        row.username,
+        row.Firstname_user,
+        row.Lastname_user,
+        row.Birthday_user,
+        row.Email_user,
+        row.Phonenumber_user,
+        row.Icon_user,  // Icon_user should not be null unless explicitly required
+        row.password,
+        row.Grade_user,
+        row.Status_user,
+        row.Url_image
+      );
+  
+      callback(null, user);
+    } catch (err) {
       console.error("Error getting user by username: " + usernameUser, err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
-  static deleteimage(pathimage, callback) {
+  static async deleteimage(pathimage, callback) {
     try {
       const filePathToDelete = "./public/uploads/" + pathimage; // Replace with the path to the file you want to delete
       // Check if the file exists
@@ -345,46 +318,45 @@ class User {
         });
       });
     } catch (err) {
-      db.close();
+      
       console.error("Error delete image user : " + pathimage, err);
       callback(err, null);
     }
   }
-  static getAllUsers(callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async getAllUsers(callback) {
+    const client = await pool.connect();
     try {
-      db.all("SELECT * FROM User", (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const users = rows.map((row) => {
-          return new User(
-            row.Id_user,
-            row.username,
-            row.Firstname_user,
-            row.Lastname_user,
-            row.Birthday_user,
-            row.Email_user,
-            row.Phonenumber_user,
-            row.Icon_user,
-            row.password,
-            row.Grade_user,
-            row.Status_user,
-            row.Url_image
-          );
-        });
-        callback(null, users);
+      const query = 'SELECT * FROM "User"';
+      const res = await client.query(query);
+  
+      const users = res.rows.map((row) => {
+        return new User(
+          row.Id_user,
+          row.username,
+          row.Firstname_user,
+          row.Lastname_user,
+          row.Birthday_user,
+          row.Email_user,
+          row.Phonenumber_user,
+          row.Icon_user,
+          row.password,
+          row.Grade_user,
+          row.Status_user,
+          row.Url_image
+        );
       });
-      db.close();
+  
+      callback(null, users);
     } catch (err) {
-      db.close();
-      console.error("Error get All Users", err);
+      console.error("Error getting all users", err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
-  static updateUser(
+  static async updateUser(
     UserId,
     username,
     firstname,
@@ -399,58 +371,93 @@ class User {
     url,
     callback
   ) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    const client = await pool.connect();
     try {
-      db.run(
-        "UPDATE User SET Firstname_user = ?, Lastname_user = ?, Birthday_user = ?, Email_user = ?, Phonenumber_user = ?, Icon_user = ?, password = ?, Grade_user = ?, Status_user = ?,Url_image = ? WHERE Id_user = ?",
-        [
-          firstname,
-          lastname,
-          birthday,
-          email,
-          phoneNumber,
-          icon,
-          password,
-          grade,
-          status,
-          url,
-          UserId,
-        ],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
-          }
-          if (this.changes === 0) {
-            callback(null, null); // User not found or not updated
-            return;
-          }
-          const updatedUser = new User(
-            id,
-            username,
-            firstname,
-            lastname,
-            birthday,
-            email,
-            phoneNumber,
-            icon,
-            password,
-            grade,
-            status,
-            url
-          );
-          callback(null, updatedUser);
-        }
+      // If password is being updated, hash it
+      const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : null;
+
+      const query = `UPDATE "User" 
+        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10
+        WHERE Id_user = $11
+        RETURNING "Id_user"`;
+
+      const res = await client.query(query, [
+        firstname, lastname, birthday, email, phoneNumber, icon, hashedPassword || password, grade, status, url, UserId
+      ]);
+
+      if (res.rowCount === 0) {
+        callback(null, null); // User not found or not updated
+        return;
+      }
+
+      const updatedUser = new User(
+        res.rows[0].id_user,
+        username,
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        hashedPassword || password,
+        grade,
+        status,
+        url
       );
-      db.close();
+
+      callback(null, updatedUser);
     } catch (err) {
-      db.close();
-      console.error("Error update User", err);
+      console.error("Error updating user", err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
 
-  static updateUserByUsername(
+  static async deleteUser(id, callback) {
+    const client = await pool.connect();
+    try {
+      // Delete user image file if needed
+      const queryImage = 'SELECT "Icon_user" FROM "User" WHERE "Id_user" = $1';
+      const resImage = await client.query(queryImage, [id]);
+
+      if (resImage.rows.length === 0) {
+        callback(null, "User not found");
+        return;
+      }
+
+      const imageFilePath = resImage.rows[0].Icon_user;
+      if (imageFilePath) {
+        fs.unlink(path.join(__dirname, 'public', 'uploads', imageFilePath), (err) => {
+          if (err) {
+            console.error("Error deleting image file", err);
+          } else {
+            console.log("Image file deleted");
+          }
+        });
+      }
+
+      // Now delete the user record
+      const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING *';
+      const resDelete = await client.query(query, [id]);
+
+      if (resDelete.rowCount === 0) {
+        callback(null, "User not found");
+        return;
+      }
+
+      callback(null, `User with ID ${id} deleted successfully`);
+    } catch (err) {
+      console.error("Error deleting user", err);
+      callback(err, null);
+    } finally {
+      client.release();
+    }
+  }
+
+
+
+  static async updateUserByUsername(
     username,
     firstname,
     lastname,
@@ -464,130 +471,130 @@ class User {
     url,
     callback
   ) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    const client = await pool.connect();
     try {
       console.log("test" + username);
-
-      db.run(
-        "UPDATE User SET Firstname_user = ?, Lastname_user = ?, Birthday_user = ?, Email_user = ?, Phonenumber_user = ?, Icon_user = ?, password = ?, Grade_user = ?, Status_user = ?, Url_image = ? WHERE username = ?",
-        [
-          firstname,
-          lastname,
-          birthday,
-          email,
-          phoneNumber,
-          icon,
-          password,
-          grade,
-          status,
-          url,
-          username,
-        ],
-        function (err) {
-          if (err) {
-            callback(err);
-            db.close(); // Close the database connection in case of an error
-            return;
-          }
-
-          if (this.changes === 0) {
-            const error = new Error("User not found or not updated");
-            callback(error, null);
-            db.close(); // Close the database connection if no rows were updated
-            return;
-          }
-
-          const id = this.lastID; // Use `this.lastID` to get the ID of the last inserted row
-          console.log(`Row(s) updated: ${this.changes}` + "id : " + id);
-
-          const updatedUser = new User(
-            id,
-            username,
-            firstname,
-            lastname,
-            birthday,
-            email,
-            phoneNumber,
-            icon,
-            password,
-            grade,
-            status,
-            url
-          );
-          console.log(updatedUser);
-          callback(null, updatedUser);
-
-          db.close(); // Close the database connection after the update
-        }
+  
+      const query = `
+        UPDATE "User" 
+        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10 
+        WHERE username = $11 
+        RETURNING "Id_user"
+      `;
+  
+      const values = [
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        password,
+        grade,
+        status,
+        url,
+        username,
+      ];
+  
+      const res = await client.query(query, values);
+  
+      if (res.rowCount === 0) {
+        const error = new Error("User not found or not updated");
+        callback(error, null);
+        return;
+      }
+  
+      const updatedUser = new User(
+        res.rows[0].id_user,
+        username,
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        password,
+        grade,
+        status,
+        url
       );
+  
+      console.log(updatedUser);
+      callback(null, updatedUser);
     } catch (err) {
-      db.close();
-      console.error("Error update UserBy Username : " + username, err);
+      console.error("Error updating user by username: " + username, err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
-  static updateImageUserByUsername(username, icon, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  
+  static async updateImageUserByUsername(username, icon, callback) {
+    const client = await pool.connect();
     try {
-      db.run(
-        "UPDATE User SET  Url_image = ? WHERE username = ?",
-        [icon, username],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
-          }
-          if (this.changes === 0) {
-            const error = new Error("User not found or not updated");
-            callback(error, null);
-            return;
-          }
-          const updatedUser = new User(
-            id,
-            username,
-            firstname,
-            lastname,
-            birthday,
-            email,
-            phoneNumber,
-            icon,
-            password,
-            grade,
-            status,
-            url
-          );
-          callback(null, updatedUser);
-        }
+      const query = `
+        UPDATE "User" 
+        SET "Url_image" = $1 
+        WHERE username = $2 
+        RETURNING "Id_user", username, "Url_image"
+      `;
+  
+      const values = [icon, username];
+      const res = await client.query(query, values);
+  
+      if (res.rowCount === 0) {
+        const error = new Error("User not found or not updated");
+        callback(error, null);
+        return;
+      }
+  
+      const updatedUser = new User(
+        res.rows[0].id_user,  // Assuming 'id_user' is the primary key
+        username,
+        null, // The first name, last name, and other fields can be `null` or handled as needed
+        null,
+        null,
+        null,
+        null,
+        icon,
+        null,
+        null,
+        null,
+        null
       );
-      db.close();
+  
+      console.log(updatedUser);
+      callback(null, updatedUser);
     } catch (err) {
-      db.close();
-      console.error("Error update Image User By Username : " + username, err);
+      console.error("Error updating image for user by username: " + username, err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
-  static deleteUser(UserId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async deleteUser(UserId, callback) {
+    const client = await pool.connect();
     try {
-      db.run("DELETE FROM User WHERE Id_user = ?", [UserId], function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, false); // User not found or not deleted
-          return;
-        }
-        callback(null, true); // User deleted successfully
-      });
-      db.close();
+      const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING "Id_user"';
+  
+      const res = await client.query(query, [UserId]);
+  
+      if (res.rowCount === 0) {
+        callback(null, false); // User not found or not deleted
+        return;
+      }
+  
+      callback(null, true); // User deleted successfully
     } catch (err) {
-      db.close();
-      console.error("Error delete User id : " + UserId, err);
+      console.error("Error deleting user with ID: " + UserId, err);
       callback(err, null);
+    } finally {
+      client.release();
     }
   }
+  
 
   // ... (Other methods)
 
