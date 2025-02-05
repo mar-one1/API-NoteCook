@@ -1,5 +1,5 @@
 
-// sql
+--sql
 -- Insert 100 rows into the Recipe table
 INSERT INTO Recipe (Icon, Favorite, Name, User_ID, Category_ID)
 VALUES

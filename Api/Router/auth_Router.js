@@ -2,7 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
-const pool = require("../../database"); // Import your PostgreSQL pool
+const pool = require("../../data/database"); // Import your PostgreSQL pool
 
 const authRouter = express.Router();
 
