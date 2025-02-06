@@ -1,11 +1,13 @@
-const sqlite3 = require("sqlite3").verbose();
+const pool = require("../../data/database");
 const UserModel = require("./User"); // Import the User model
-const DetailRecipeModel = require("./Detail_recipe"); // Import the User model
-const IngredientModel = require("./Ingredient"); // Import the User model
-const ReviewModel = require("./Review_recipe"); // Import the User model
-const StepModel = require("./Step_recipe"); // Import the User model
-const imageHelper = require("../Router/ImageHelper"); // Import the User model
+const DetailRecipeModel = require("./Detail_recipe"); // Import the DetailRecipe model
+const IngredientModel = require("./Ingredient"); // Import the Ingredient model
+const ReviewModel = require("./Review_recipe"); // Import the Review model
+const StepModel = require("./Step_recipe"); // Import the Step model
+const imageHelper = require("../Router/ImageHelper"); // Import the ImageHelper
 const fs = require("fs");
+const { log } = require("console");
+
 class Recipe {
   constructor(id, name, icon, fav, unique_key, userId) {
     this.id = id;
@@ -16,128 +18,136 @@ class Recipe {
     this.userId = userId;
   }
 
-  static createRecipe(name, icon, fav, unique_key, userId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async createRecipe(name, icon, fav, unique_key, userId, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
+    const query =
+      'INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user") VALUES ($1, $2, $3, $4, $5) RETURNING *';
+    const values = [name, icon, fav, unique_key, userId];
+
     try {
-      db.run(
-        "INSERT INTO Recipe (Nom_Recipe, Icon_recipe, Fav_recipe, unique_key_recipe, Frk_user) VALUES (?, ?, ?, ?, ?)",
-        [name, icon, fav, unique_key, userId],
-        function (err) {
-          if (err) {
-            callback(err);
-            return;
-          }
-          const newRecipe = new Recipe(this.lastID, name, icon, fav, unique_key, userId);
-          callback(null, newRecipe);
-        }
+      const result = await pool.query(query, values);
+      const newRecipe = new Recipe(
+        result.rows[0].id,
+        name,
+        icon,
+        fav,
+        unique_key,
+        userId
       );
-      db.close();
+      callback(null, newRecipe);
     } catch (err) {
-      db.close();
-      console.error("Error create Recipe ", err);
+      console.error("Error creating recipe:", err);
       callback(err, null);
+    } finally {
+      client.release(); // Release the client back to the pool
     }
   }
+
+
 
   // Helper function to get all image paths from the database
-  static getAllImagePathsFromDatabase(callback) {
-    if (typeof callback !== "function") {
-      throw new Error("Callback function is required");
-    }
-
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async getAllImagePathsFromDatabase() {
+    const client = await pool.connect(); // Getting a client from the pool
+    const query = 'SELECT "Icon_recipe" FROM "Recipe"'; // Use double quotes for mixed-case identifiers
     try {
-      db.all("SELECT Icon_recipe FROM Recipe", [], (err, rows) => {
-        if (err) {
-          db.close();
-          console.error("Error getting all image paths from database:", err);
-          return callback(err, null);
-        }
-        const paths = rows.map((row) => row.Icon_recipe);
-        console.log("path geting form db :" + paths);
-        db.close();
-        callback(null, paths);
-      });
+      const result = await pool.query(query); // Execute the query
+      const paths = result.rows.map((row) => row.Icon_recipe); // Map the rows to extract image paths
+      console.log("Paths retrieved from database:", paths);
+      return paths; // Return the array of image paths
     } catch (err) {
-      db.close();
       console.error("Error getting all image paths from database:", err);
-      callback(err, null);
+      throw err; // Rethrow the error to be handled by the calling code
+    } finally {
+      client.release(); // Release the client back to the pool
     }
   }
 
-  static getRecipeById(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.get(
-      'SELECT * FROM Recipe WHERE Id_recipe = ?',
-      [id],
-      (err, row) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!row) {
-          callback(null, null); // Recipe not found
-          return;
-        }
-        const recipe = new Recipe(
-          row.Id_recipe,
-          row.Nom_Recipe,
-          row.Icon_recipe,
-          row.Fav_recipe,
-          row.unique_key_recipe,
-          row.Frk_user
-        );
-        callback(null, recipe);
+
+  static async getRecipeById(id) {
+    const client = await pool.connect(); // Get a client from the pool
+    const query = 'SELECT * FROM "Recipe" WHERE "Id_recipe" = $1';
+    try {
+      const result = await client.query(query, [id]); // Use the client to execute the query
+      if (result.rows.length === 0) {
+        return null; // Recipe not found
       }
-    );
-    db.close();
+      const row = result.rows[0];
+      return new Recipe(
+        row.Id_recipe,
+        row.Nom_Recipe,
+        row.Icon_recipe,
+        row.Fav_recipe,
+        row.unique_key_recipe,
+        row.Frk_user
+      );
+    } catch (err) {
+      console.error("Error fetching recipe by ID:", err);
+      throw err; // Rethrow the error for higher-level handling
+    } finally {
+      client.release(); // Ensure the client is released back to the pool
+    }
   }
+
+
 
   static getAllFullRecipesByUsername(username, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      UserModel.getUserByUsername(username, (err, user) => {
+    pool.connect((err, client, release) => {
+      if (err) {
+        console.error("Error acquiring client from pool:", err);
+        callback(err, null);
+        return;
+      }
+  
+      // Get the user by username
+      const userQuery = 'SELECT * FROM "User" WHERE "username" = $1';
+      client.query(userQuery, [username], (err, userResult) => {
         if (err) {
-          db.close();
+          release(); // Release client back to the pool
           callback(err, null);
           return;
         }
-        if (!user) {
-          db.close();
-          callback(null, null); // user not found
+  
+        if (userResult.rows.length === 0) {
+          release();
+          callback(null, null); // User not found
           return;
         }
-        const id = user.id;
-        console.log(id);
-        const sql = `
-                SELECT Recipe.*, 
-                    Detail_recipe.*, 
-                    Ingredient.*, 
-                    Step_recipe.*, 
-                    Review_recipe.*,
-                    FavoriteUserRecipe.*
-                FROM Recipe
-                LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-                LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-                LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-                LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
-                LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = FavoriteUserRecipe.Frk_recipe
-                WHERE Recipe.Frk_user = ?
-            `;
-
-        db.all(sql, [id], (err, rows) => {
+  
+        const userId = userResult.rows[0].Id_user;
+        console.log(userId);
+        
+  
+        // Main query to fetch all related recipe data
+        const recipeQuery = `
+          SELECT "Recipe".*, 
+                 "DetailRecipe".*, 
+                 "IngredientRecipe".*, 
+                 "StepRecipe".*, 
+                 "ReviewRecipe".*,
+                 "FavoriteUserRecipe".*
+          FROM "Recipe"
+          LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
+          LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+          LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
+          LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
+          LEFT JOIN "FavoriteUserRecipe" ON "Recipe"."Id_recipe" = "FavoriteUserRecipe"."FRK_recipe"
+          WHERE "Recipe"."Frk_user" = $1
+        `;
+  
+        client.query(recipeQuery, [userId], (err, result) => {
+          release(); // Release client back to the pool
+  
           if (err) {
-            db.close();
             callback(err, null);
             return;
           }
-
-          const dataMap = new Map(); // Map to store unique entries across all tables
-
-          rows.forEach((row) => {
+  
+          const dataMap = new Map();
+  
+          // Process each row and organize it in a Map
+          result.rows.forEach((row) => {
             const recipeId = row.Id_recipe;
-
-            // Check if the entry with the same recipeId already exists in the map
+  
             if (!dataMap.has(recipeId)) {
               dataMap.set(recipeId, {
                 recipe: {
@@ -147,7 +157,7 @@ class Recipe {
                   fav: row.Fav_recipe,
                   unique_key: row.unique_key_recipe,
                 },
-
+  
                 detail_recipe: {
                   id: row.Id_detail_recipe,
                   detail: row.Dt_recipe,
@@ -162,31 +172,31 @@ class Recipe {
                 favs: new Set(),
               });
             }
-
-            // Add ingredients, reviews, steps, and favs to the corresponding entry
+  
+            // Add nested entities to the corresponding sets
             const entry = dataMap.get(recipeId);
             entry.ingredients.add(
               JSON.stringify({
-                id: row.Id_Ingredient,
+                id: row.Id_Ingredient_recipe,
                 ingredient: row.Ingredient_recipe,
-                poidIngredient: row.PoidIngredient,
-                unite: row.Unite,
-                recipeId: row.FRK_recipe,
+                poidIngredient: row.PoidIngredient_recipe,
+                unite: row.unit,
+                recipeId: row.FRK_detail_recipe,
               })
             );
             entry.reviews.add(
               JSON.stringify({
                 id: row.Id_Review_recipe,
-                detailReview: row.Detail_Review_recipe,
-                rateReview: row.Rate_Review_recipe,
+                detailReview: row.Detail_review_recipe,
+                rateReview: row.Rate_review_recipe,
               })
             );
             entry.steps.add(
               JSON.stringify({
                 id: row.Id_Step_recipe,
-                detailStep: row.Detail_Step_recipe,
-                imageStep: row.Image_Step_recipe,
-                timeStep: row.Time_Step_recipe,
+                detailStep: row.Detail_step_recipe,
+                imageStep: row.Image_step_recipe,
+                timeStep: row.Time_step_recipe,
               })
             );
             entry.favs.add(
@@ -196,7 +206,7 @@ class Recipe {
               })
             );
           });
-
+  
           // Convert sets to arrays before returning
           const uniqueEntries = Array.from(dataMap.values()).map((entry) => ({
             ...entry,
@@ -205,190 +215,151 @@ class Recipe {
             steps: Array.from(entry.steps).map(JSON.parse),
             favs: Array.from(entry.favs).map(JSON.parse),
           }));
-
+  
           callback(null, uniqueEntries);
-          db.close();
         });
       });
-    } catch (err) {
-      console.error("Error retrieving recipes by username:", err);
-      callback(err, null);
-    }
-  }
-
-  static insertRecipeWithDetails(recipeData, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-
-    db.serialize(() => {
-      db.run("BEGIN TRANSACTION");
-
-      try {
-        const { recipe, detail_recipe, ingredients, reviews, steps } =
-          recipeData;
-
-        db.run(
-          `INSERT INTO Recipe (Nom_Recipe, Icon_recipe, Fav_recipe, unique_key_recipe, Frk_user) VALUES (?, ?, ?, ?, ?)`,
-          [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId],
-          function (err) {
-            if (err) {
-              db.run("ROLLBACK");
-              console.error("Error inserting recipe:", err);
-              return callback(err);
-            }
-
-            const recipeId = this.lastID;
-
-            db.run(
-              `INSERT INTO Detail_recipe (Dt_recipe, Dt_recipe_time, Rate_recipe, Level_recipe, Calories_recipe, FRK_recipe) VALUES (?, ?, ?, ?, ?, ?)`,
-              [
-                detail_recipe.detail,
-                detail_recipe.time,
-                detail_recipe.rate,
-                detail_recipe.level,
-                detail_recipe.calories,
-                recipeId,
-              ],
-              function (err) {
-                if (err) {
-                  db.run("ROLLBACK");
-                  console.error("Error inserting detail recipe:", err);
-                  return callback(err);
-                }
-
-                // Insert ingredients
-                Recipe.insertIngredients(db, ingredients, recipeId, (err) => {
-                  if (err) {
-                    db.run("ROLLBACK");
-                    console.error("Error inserting ingredients:", err);
-                    return callback(err);
-                  }
-
-                  // Insert steps
-                  Recipe.insertSteps(db, steps, recipeId, (err) => {
-                    if (err) {
-                      db.run("ROLLBACK");
-                      console.error("Error inserting steps:", err);
-                      return callback(err);
-                    }
-
-                    // Commit transaction
-                    db.run("COMMIT", function (err) {
-                      if (err) {
-                        console.error("Error committing transaction:", err);
-                        return callback(err);
-                      }
-                      console.log(
-                        "Recipe inserted successfully with ID:",
-                        recipeId
-                      );
-                      callback(null, recipeId);
-                    });
-                  });
-                });
-              }
-            );
-          }
-        );
-      } catch (err) {
-        db.run("ROLLBACK");
-        console.error("Error creating recipe:", err);
-        callback(err);
-      }
     });
   }
+  
+  
+  
+  // Insert recipe with details
+  static async insertRecipeWithDetails(recipeData, callback) {
 
-  static insertIngredients(db, ingredients, recipeId, callback) {
+
     try {
-      const insertIngredient = db.prepare(
-        `INSERT INTO Ingredient (Ingredient_recipe, PoidIngredient_recipe, Unite, FRK_recipe) VALUES (?, ?, ?, ?)`
-      );
-      ingredients.forEach((ingredient) => {
-        insertIngredient.run(
-          ingredient.ingredient,
-          ingredient.poidIngredient,
-          ingredient.unite,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertIngredient.finalize(callback); // Return from finalize to ensure it's not called multiple times
+      // Connect to PostgreSQL
+      await client.connect();
+
+      // Begin transaction
+      await Recipe.beginTransaction(client);
+
+      const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
+
+      // Insert recipe
+      const recipeId = await Recipe.insertRecipe(client, recipe);
+
+      // Insert detail recipe
+      await Recipe.insertDetailRecipe(client, detail_recipe, recipeId);
+
+      // Insert ingredients
+      await Recipe.insertIngredients(client, ingredients, recipeId);
+
+      // Insert steps
+      await Recipe.insertSteps(client, steps, recipeId);
+
+      // Insert reviews
+      await Recipe.insertReviews(client, reviews, recipeId);
+
+      // Commit transaction
+      await Recipe.commitTransaction(client);
+
+      console.log("Recipe inserted successfully with ID:", recipeId);
+      callback(null, recipeId);
     } catch (err) {
-      console.error("Error insert Ingredients", err);
-      callback(err, null);
+      // Rollback transaction if an error occurs
+      await Recipe.rollbackTransaction(client);
+      console.error("Error creating recipe:", err);
+      callback(err);
+    } finally {
+      await client.end(); // Close the connection to PostgreSQL
     }
   }
 
-  static insertReviews(db, reviews, recipeId, callback) {
-    try {
-      const insertReview = db.prepare(
-        `INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)`
-      );
-      reviews.forEach((review) => {
-        insertReview.run(
-          review.detailReview,
-          review.rateReview,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertReview.finalize(callback); // Return from finalize to ensure it's not called multiple times
-    } catch (err) {
-      console.error("Error insert Reviews", err);
-      callback(err, null);
-    }
+  // Helper function to begin a transaction
+  static async beginTransaction(client) {
+    return client.query('BEGIN');
   }
 
-  static insertSteps(db, steps, recipeId, callback) {
-    try {
-      const insertStep = db.prepare(
-        `INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
-      );
-      steps.forEach((step) => {
-        insertStep.run(
-          step.detailStep,
-          step.imageStep,
-          step.timeStep,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertStep.finalize(callback); // Return from finalize to ensure it's not called multiple times
-    } catch (err) {
-      console.error("Error insert Steps", err);
-      callback(err, null);
-    }
+  // Helper function to commit a transaction
+  static async commitTransaction(client) {
+    return client.query('COMMIT');
   }
 
-  static getRecipesByConditions(conditions, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  // Helper function to rollback a transaction
+  static async rollbackTransaction(client) {
+    return client.query('ROLLBACK');
+  }
+
+  // Insert recipe into Recipe table
+  static async insertRecipe(client, recipe) {
+    const result = await client.query(
+      `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
+       VALUES ($1, $2, $3, $4, $5) RETURNING Id_recipe`,
+      [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
+    );
+    return result.rows[0].recipe_id;
+  }
+
+  // Insert detail recipe into Detail_recipe table
+  static async insertDetailRecipe(client, detail_recipe, recipeId) {
+    await client.query(
+      `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        detail_recipe.detail,
+        detail_recipe.time,
+        detail_recipe.rate,
+        detail_recipe.level,
+        detail_recipe.calories,
+        recipeId
+      ]
+    );
+  }
+
+  // Insert ingredients into Ingredient table
+  static async insertIngredients(client, ingredients, recipeId) {
+    const promises = ingredients.map((ingredient) =>
+      client.query(
+        `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "Unite", "FRK_recipe")
+         VALUES ($1, $2, $3, $4)`,
+        [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, recipeId]
+      )
+    );
+    await Promise.all(promises);
+  }
+
+  // Insert reviews into Review_recipe table
+  static async insertReviews(client, reviews, recipeId) {
+    const promises = reviews.map((review) =>
+      client.query(
+        `INSERT INTO "ReviewRecipe" ("Detail_Review_recipe", "Rate_Review_recipe", "FRK_recipe")
+         VALUES ($1, $2, $3)`,
+        [review.detailReview, review.rateReview, recipeId]
+      )
+    );
+    await Promise.all(promises);
+  }
+
+  // Insert steps into Step_recipe table
+  static async insertSteps(client, steps, recipeId) {
+    const promises = steps.map((step) =>
+      client.query(
+        `INSERT INTO "StepRecipe" ("Detail_Step_recipe", "Image_Step_recipe", "Time_Step_recipe", "FRK_recipe")
+         VALUES ($1, $2, $3, $4)`,
+        [step.detailStep, step.imageStep, step.timeStep, recipeId]
+      )
+    );
+    await Promise.all(promises);
+  }
+
+
+  static async getRecipesByConditions(conditions, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
     try {
       let query = `
-    SELECT 
-      Recipe.*, 
-      Detail_recipe.*, 
-      Ingredient.*, 
-      Step_recipe.*, 
-      Review_recipe.*
-    FROM Recipe
-    LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-    LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-    LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-    LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe`;
+        SELECT 
+          "Recipe".*, 
+          "DetailRecipe".*, 
+          "IngredientRecipe".*, 
+          "StepRecipe".*, 
+          "ReviewRecipe".*
+        FROM "Recipe"
+        LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
+        LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+        LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
+        LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"`;
 
       let params = [];
       let whereClauseAdded = false;
@@ -396,23 +367,17 @@ class Recipe {
       // Check if searchText is provided
       if (conditions.searchText) {
         query += ` WHERE (
-      Recipe.Nom_Recipe LIKE ? OR
-      Detail_recipe.Dt_recipe LIKE ? OR
-      Ingredient.Ingredient_recipe LIKE ? OR
-      Step_recipe.Detail_Step_recipe LIKE ? OR
-      Review_recipe.Detail_Review_recipe LIKE ?
-    )`;
-
-        // Add searchText parameters
+          "Recipe"."Nom_Recipe" ILIKE $1 OR
+          "DetailRecipe"."Dt_recipe" ILIKE $1 OR
+          "IngredientRecipe"."Ingredient_recipe" ILIKE $1 OR
+          "StepRecipe"."Detail_Step_recipe" ILIKE $1 OR
+          "ReviewRecipe"."Detail_Review_recipe" ILIKE $1
+        )`;
         params.push(`%${conditions.searchText}%`);
-        /*params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);*/
-
         whereClauseAdded = true;
       }
 
+      // Add other conditions dynamically
       for (const key in conditions) {
         if (key !== "searchText") {
           if (!whereClauseAdded) {
@@ -421,162 +386,170 @@ class Recipe {
           } else {
             query += " AND";
           }
-          query += ` ${key} LIKE ?`;
+          query += ` "${key}" ILIKE $${params.length + 1}`;
           params.push(`%${conditions[key]}%`);
         }
       }
 
-      db.all(query, params, (err, rows) => {
-        if (err) {
-          callback(err);
-          db.close();
-          return;
-        }
-        const recipeSet = new Set();
-        rows.forEach((row) => {
-          // Use JSON.stringify to compare recipe objects as strings
-          recipeSet.add(
-            JSON.stringify({
-              id: row.Id_recipe,
-              name: row.Nom_Recipe,
-              icon: row.Icon_recipe,
-              fav: row.Fav_recipe,
-              unique_key: row.unique_key_recipe,
-              userId: row.Frk_user,
-            })
-          );
-        });
-        // Convert the set back to an array of recipes
-        const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
-        callback(null, uniqueRecipes);
-        db.close();
+      // Execute the query
+      const result = await client.query(query, params);
+
+      // Process the rows to remove duplicates
+      const recipeSet = new Set();
+      result.rows.forEach((row) => {
+        // Use JSON.stringify to compare recipe objects as strings
+        recipeSet.add(
+          JSON.stringify({
+            id: row.Id_recipe,
+            name: row.Nom_Recipe,
+            icon: row.Icon_recipe,
+            fav: row.Fav_recipe,
+            unique_key: row.unique_key_recipe,
+            userId: row.Frk_user,
+          })
+        );
       });
+
+      // Convert the set back to an array of recipes
+      const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
+
+      // Return the results
+      callback(null, uniqueRecipes);
     } catch (err) {
-      db.close();
       console.error("Error getting recipes by conditions:", err);
       callback(err, null);
+    } finally {
+      // Close the database connection
+      client.release();  // Release the client back to the pool
     }
   }
 
-  static getFullRecipeById(id, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+  static async getFullRecipeById(id, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
     try {
       const sql = `
-    SELECT Recipe.*,User.*, Detail_recipe.*, Ingredient.*, Step_recipe.*,Review_recipe.*
-          FROM Recipe
-          LEFT JOIN User ON Recipe.Frk_user = User.Id_user
-          LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-          LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-          LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-          LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
-          LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
-          WHERE Recipe.Id_recipe = ?
-    `;
-
-      db.all(sql, [id], (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!rows || rows.length === 0) {
-          callback(null, null); // Recipe not found
-          return;
-        }
-        //a complete////!
-        const user = new UserModel(
-          rows[0].Id_user,
-          rows[0].username,
-          rows[0].Firstname_user,
-          rows[0].Lastname_user,
-          rows[0].Birthday_user,
-          rows[0].Email_user,
-          rows[0].Phonenumber_user,
-          (rows[0].Icon_user = null),
-          rows[0].password,
-          rows[0].Grade_user,
-          rows[0].Status_user,
-          rows[0].Url_image
+        SELECT 
+          "Recipe".*, 
+          "User".*, 
+          "DetailRecipe".*, 
+          "IngredientRecipe".*, 
+          "StepRecipe".*, 
+          "ReviewRecipe".* 
+        FROM "Recipe"
+        LEFT JOIN "User" ON "Recipe"."Frk_user" = "User"."Id_user"
+        LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
+        LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+        LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
+        LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
+        WHERE "Recipe"."Id_recipe" = $1
+      `;
+  
+      const result = await client.query(sql, [id]);
+  
+      if (result.rows.length === 0) {
+        callback(null, null); // Recipe not found
+        return;
+      }
+  
+      const row = result.rows[0];
+  
+      // Create instances for the user, recipe, and detail
+      const user = new UserModel(
+        row.Id_user,
+        row.username,
+        row.Firstname_user,
+        row.Lastname_user,
+        row.Birthday_user,
+        row.Email_user,
+        row.Phonenumber_user,
+        row.Icon_user,
+        row.password,
+        row.Grade_user,
+        row.Status_user,
+        row.Url_image
+      );
+  
+      const recipe = new Recipe(
+        row.Id_recipe,
+        row.Nom_Recipe,
+        row.Icon_recipe,
+        row.Fav_recipe,
+        row.unique_key_recipe,
+        row.Frk_user
+      );
+  
+      const detail_recipe = new DetailRecipeModel(
+        row.Id_detail_recipe,
+        row.Dt_recipe,
+        row.Dt_recipe_time,
+        row.Rate_recipe,
+        row.Level_recipe,
+        row.Calories_recipe,
+        row.FRK_recipe
+      );
+  
+      // Create sets to ensure uniqueness for ingredients, reviews, and steps
+      const ingredientSet = new Set();
+      const reviewSet = new Set();
+      const stepSet = new Set();
+  
+      result.rows.forEach((row) => {
+        // Ensure uniqueness for each entity type
+        ingredientSet.add(
+          JSON.stringify({
+            id: row.Id_Ingredient_recipe,
+            ingredient: row.Ingredient_recipe,
+            poidIngredient: row.PoidIngredient_recipe_recipe,
+            unite: row.unit,
+            recipeId: row.FRK_recipe,
+          })
         );
-        // Create instances for the main recipe and its detail
-        const recipe = new Recipe(
-          rows[0].Id_recipe,
-          rows[0].Nom_Recipe,
-          rows[0].Icon_recipe,
-          rows[0].Fav_recipe,
-          rows[0].unique_key_recipe,
-          rows[0].Frk_user
+  
+        reviewSet.add(
+          JSON.stringify({
+            id: row.Id_review_recipe,
+            detailReview: row.Detail_review_recipe,
+            rateReview: row.Rate_review_recipe,
+            recipeId: row.FRK_recipe,
+          })
         );
-
-        const detail_recipe = new DetailRecipeModel(
-          rows[0].Id_detail_recipe,
-          rows[0].Dt_recipe,
-          rows[0].Dt_recipe_time,
-          rows[0].Rate_recipe,
-          rows[0].Level_recipe,
-          rows[0].Calories_recipe,
-          rows[0].FRK_recipe
+  
+        stepSet.add(
+          JSON.stringify({
+            id: row.Id_Step_recipe,
+            detailStep: row.Detail_step_recipe,
+            imageStep: row.Image_step_recipe,
+            timeStep: row.Time_step_recipe,
+            recipeId: row.FRK_recipe,
+          })
         );
-
-        // Create sets to ensure uniqueness
-        const ingredientSet = new Set();
-        const reviewSet = new Set();
-        const stepSet = new Set();
-
-        // Map over the rows for ingredients, reviews, and steps
-        rows.forEach((row) => {
-          // Ensure uniqueness for each entity type
-          ingredientSet.add(
-            JSON.stringify({
-              id: row.Id_Ingredient,
-              ingredient: row.Ingredient_recipe,
-              poidIngredient: row.PoidIngredient_recipe,
-              unite: row.Unite,
-              recipeId: row.FRK_recipe,
-            })
-          );
-
-          reviewSet.add(
-            JSON.stringify({
-              id: row.Id_Review_recipe,
-              detailReview: row.Detail_Review_recipe,
-              rateReview: row.Rate_Review_recipe,
-              recipeId: row.FRK_recipe,
-            })
-          );
-
-          stepSet.add(
-            JSON.stringify({
-              id: row.Id_Step_recipe,
-              detailStep: row.Detail_Step_recipe,
-              imageStep: row.Image_Step_recipe,
-              timeStep: row.Time_Step_recipe,
-              recipeId: row.FRK_recipe,
-            })
-          );
-        });
-
-        // Convert sets back to arrays of unique entities
-        const ingredients = Array.from(ingredientSet).map(JSON.parse);
-        const reviews = Array.from(reviewSet).map(JSON.parse);
-        const steps = Array.from(stepSet).map(JSON.parse);
-
-        // Pass all the data to the callback
-        callback(null, {
-          recipe,
-          user,
-          detail_recipe,
-          ingredients,
-          reviews,
-          steps,
-        });
       });
-      db.close();
+  
+      // Convert sets back to arrays of unique entities
+      const ingredients = Array.from(ingredientSet).map(JSON.parse);
+      const reviews = Array.from(reviewSet).map(JSON.parse);
+      const steps = Array.from(stepSet).map(JSON.parse);
+  
+      // Pass all the data to the callback
+      callback(null, {
+        recipe,
+        user,
+        detail_recipe,
+        ingredients,
+        reviews,
+        steps,
+      });
     } catch (err) {
-      db.close();
-      console.error("Error full retrieving recipes by id recipe: " + id, err);
+      console.error("Error full retrieving recipe by id: " + id, err);
       callback(err, null);
+    } finally {
+      // Release the PostgreSQL client back to the pool
+      client.release();
     }
   }
+  
+
+
 
   static deleteimage(pathimage, callback = () => { }) { // Default empty callback
     const filePathToDelete = "./public/data/uploads/" + pathimage;
@@ -605,113 +578,164 @@ class Recipe {
   }
 
 
-  static async UpdateRecipeImage(unique, imagebyte, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      // Retrieve the recipe ID using the unique_key_recipe
-      db.get(
-        `SELECT Icon_recipe FROM Recipe WHERE unique_key_recipe = ?`,
-        [unique],
-        (err, row) => {
-          if (err || !row) {
-            db.run("ROLLBACK");
-            console.error("Error retrieving recipe ID:", err);
-            return callback(err || new Error("Recipe not found"));
-          }
-          const oldPath = row.Icon_recipe;
-          db.run(
-            "UPDATE Recipe SET Icon_recipe = ? WHERE unique_key_recipe = ?",
-            [imagebyte, unique],
-            function (err) {
-              if (err) {
-                callback(err);
-                return;
-              }
-              if (this.changes === 0) {
-                callback(null, null); // User not found or not updated
-                return;
-              }
-              // If the user doesn't exist, add them to the database
-              console.log(oldPath);
-              Recipe.deleteimage(oldPath);
-              callback(null, imagebyte);
-              console.log(imagebyte);
-            }
-          );
-        }
-      )
-      db.close();
-    } catch (err) {
-      db.close();
-      console.error("Error Update Recipe Image : " + unique, err);
-      callback(err, null);
-    }
-  }
+  static async updateRecipeImage(unique, imagebyte, callback = () => { }) {
+    const client = await pool.connect();  // Get a client from the pool
 
-  static getAllRecipes(callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
     try {
-      db.all("SELECT * FROM Recipe", (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const recipes = rows.map((row) => {
-          return new Recipe(
-            row.Id_recipe,
-            row.Nom_Recipe,
-            row.Icon_recipe,
-            row.Fav_recipe,
-            row.unique_key_recipe,
-            row.Frk_user
-          );
-        });
-        callback(null, recipes);
-      });
-      db.close();
-    } catch (err) {
-      db.close();
-      console.error("Error get All Recipes", err);
-      callback(err, null);
-    }
-  }
-
-  static getUserByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      db.get(
-        "SELECT Frk_user FROM Recipe WHERE Id_recipe = ?",
-        [recipeId],
-        (err, row) => {
-          if (err) {
-            callback(err, null);
-            return;
-          }
-          if (!row) {
-            callback(null, null); // Recipe not found
-            return;
-          }
-
-          const userId = row.Frk_user;
-          UserModel.getUserById(userId, callback);
-        }
+      // Retrieve the current image path from the Recipe table
+      const res = await client.query(
+        `SELECT "Icon_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+        [unique]
       );
-      db.close();
+
+      if (res.rows.length === 0) {
+        return callback(new Error("Recipe not found"));
+      }
+
+      const oldPath = res.rows[0].Icon_recipe;
+
+      // Update the Recipe table with the new image byte data
+      const updateRes = await client.query(
+        `UPDATE "Recipe" SET "Icon_recipe" = $1 WHERE "unique_key_recipe" = $2`,
+        [imagebyte, unique]
+      );
+
+      if (updateRes.rowCount === 0) {
+        return callback(null, null); // Recipe not found or not updated
+      }
+
+      console.log("Old Path: ", oldPath);
+
+      // Delete the old image if it exists
+      if (oldPath) {
+        RecipeService.deleteImage(oldPath, (err, message) => {
+          if (err) {
+            console.error("Error deleting old image:", err);
+            return callback(err);
+          }
+
+          console.log(message);
+          callback(null, imagebyte);  // Return the updated image byte data
+        });
+      } else {
+        callback(null, imagebyte);  // No old image to delete, return updated data
+      }
     } catch (err) {
-      db.close();
-      console.error("Error retrieving get User By Recipe Id: " + recipeId, err);
-      callback(err, null);
+      console.error("Error updating recipe image:", err);
+      callback(err);
+    } finally {
+      client.release();  // Release the client back to the pool
     }
   }
 
-  static getRecipesByUserId(userId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    db.all("SELECT * FROM Recipe WHERE Frk_user = ?", [userId], (err, rows) => {
-      if (err) {
-        callback(err, null);
+  static async getAllRecipes(callback) {
+    const client = await pool.connect();  // Get a client from the pool
+
+    try {
+      const res = await client.query('SELECT * FROM "Recipe"');
+
+      const recipes = res.rows.map((row) => {
+        return new Recipe(
+          row.Id_recipe,           // Adjust field names as per your PostgreSQL schema
+          row.Nom_recipe,          // Adjust field names as per your PostgreSQL schema
+          row.Icon_recipe,
+          row.Fav_recipe,
+          row.unique_key_recipe,
+          row.Frk_user
+        );
+      });
+
+      callback(null, recipes);
+    } catch (err) {
+      console.error("Error getting all recipes:", err);
+      callback(err, null);
+    } finally {
+      client.release();  // Release the client back to the pool
+    }
+  }
+
+  static async getUserByRecipeId(recipeId, callback) {
+    const client = await pool.connect();  // Get a client from the pool
+
+    try {
+      const res = await client.query(
+        'SELECT "Frk_user" FROM "Recipe" WHERE "Id_recipe" = $1', 
+        [recipeId]
+      );
+
+      if (res.rows.length === 0) {
+        callback(null, null);  // Recipe not found
         return;
       }
-      const recipes = rows.map((row) => {
+
+      const userId = res.rows[0].frk_user;
+      UserModel.getUserById(userId, callback);  // Use the UserModel to get the user by userId
+    } catch (err) {
+      console.error('Error retrieving user by recipe ID:', err);
+      callback(err, null);
+    } finally {
+      client.release();  // Release the client back to the pool
+    }
+  }
+
+  // Get all recipes by user ID
+  static async getRecipesByUserId(userId, callback) {
+    const client = await pool.connect();  // Get a client from the pool
+
+    try {
+      const res = await client.query(
+        'SELECT * FROM "Recipe" WHERE "Frk_user" = $1', 
+        [userId]
+      );
+
+      const recipes = res.rows.map((row) => {
+        return new Recipe(
+          row.Id_recipe,           // Adjust field names as per your PostgreSQL schema
+          row.Nom_recipe,          // Adjust field names as per your PostgreSQL schema
+          row.Icon_recipe,
+          row.Fav_recipe,
+          row.unique_key_recipe,
+          row.Frk_user
+        );
+      });
+
+      callback(null, recipes);
+    } catch (err) {
+      console.error('Error getting recipes by user ID:', err);
+      callback(err, null);
+    } finally {
+      client.release();  // Release the client back to the pool
+    }
+  }
+
+
+  static async getRecipesByUsernameUser(username, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
+    try {
+      console.log(username);
+  
+      // Get the user by username
+      const userResult = await client.query(
+        'SELECT * FROM "User" WHERE "username" = $1',
+        [username]
+      );
+  
+      if (userResult.rows.length === 0) {
+        callback(null, null); // user not found
+        return;
+      }
+  
+      const user = userResult.rows[0];
+      const id = user.Id_user;
+      console.log(id);
+  
+      // Get the recipes by user ID
+      const recipeResult = await client.query(
+        'SELECT * FROM "Recipe" WHERE "Frk_user" = $1',
+        [id]
+      );
+  
+      const recipes = recipeResult.rows.map((row) => {
         return new Recipe(
           row.Id_recipe,
           row.Nom_Recipe,
@@ -721,232 +745,182 @@ class Recipe {
           row.Frk_user
         );
       });
+  
       callback(null, recipes);
-    });
-    db.close();
+    } catch (err) {
+      console.error("Error getting recipes by username:", err);
+      callback(err, null);
+    } finally {
+      // Release the client back to the pool
+      client.release();
+    }
   }
+  
 
-  static getRecipesByUsernameUser(username, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    console.log(username);
-    UserModel.getUserByUsername(username, (err, user) => {
-      if (err) {
-        callback(err, null);
-        return;
-      }
-      if (!user) {
-        callback(null, null); // user not found
-        return;
-      }
-      //res.json(user);
-      const id = user.id;
-      console.log(id);
-      db.all("SELECT * FROM Recipe WHERE Frk_user = ?", [id], (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const recipes = rows.map((row) => {
-          return new Recipe(
-            row.Id_recipe,
-            row.Nom_Recipe,
-            row.Icon_recipe,
-            row.Fav_recipe,
-            row.unique_key_recipe,
-            row.Frk_user
-          );
-        });
-        callback(null, recipes);
-      });
-      db.close();
-    });
-  }
-
-  static searchRecipes(Nom_Recipe, callback) {
-    const fuzzyTerm = `%${Nom_Recipe}%`;
-    const db = new sqlite3.Database("DB_Notebook.db");
-    db.all(
-      "SELECT * FROM Recipe WHERE Nom_Recipe LIKE ?",
-      [fuzzyTerm],
-      (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const recipes = rows.map((row) => {
-          return new Recipe(
-            row.Id_recipe,
-            row.Nom_Recipe,
-            row.Icon_recipe,
-            row.Fav_recipe,
-            row.unique_key_recipe,
-            row.Frk_user
-          );
-        });
-        callback(null, recipes);
-      }
-    );
-    db.close();
-  }
-
-  static updateRecipeWithDetails(recipeData, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-
-    db.serialize(() => {
-      db.run("BEGIN TRANSACTION");
-
-      try {
-        const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
-
-        db.run(
-          `UPDATE Recipe 
-           SET Nom_Recipe = ?, Fav_recipe = ? 
-           WHERE unique_key_recipe = ?`,
-          [recipe.name, recipe.fav, recipe.unique_key],
-          function (err) {
-            if (err) {
-              db.run("ROLLBACK");
-              console.error("Error updating recipe:", err);
-              return callback(err);
-            }
-
-            const uniqueKey = recipe.unique_key;
-
-            // Retrieve the recipe ID using the unique_key_recipe
-            db.get(
-              `SELECT unique_key_recipe FROM Recipe WHERE unique_key_recipe = ?`,
-              [uniqueKey],
-              (err, row) => {
-                if (err || !row) {
-                  db.run("ROLLBACK");
-                  console.error("Error retrieving recipe ID:", err);
-                  return callback(err || new Error("Recipe not found"));
-                }
-
-                const recipeId = row.Id_recipe;
-
-                // Update detail recipe
-                db.run(
-                  `UPDATE Detail_recipe 
-                   SET Dt_recipe = ?, Dt_recipe_time = ?, Rate_recipe = ?, Level_recipe = ?, Calories_recipe = ? 
-                   WHERE FRK_recipe = ?`,
-                  [
-                    detail_recipe.detail,
-                    detail_recipe.time,
-                    detail_recipe.rate,
-                    detail_recipe.level,
-                    detail_recipe.calories,
-                    recipeId,
-                  ],
-                  function (err) {
-                    if (err) {
-                      db.run("ROLLBACK");
-                      console.error("Error updating detail recipe:", err);
-                      return callback(err);
-                    }
-
-                    // Update ingredients
-                    Recipe.updateIngredients(db, ingredients, recipeId, (err) => {
-                      if (err) {
-                        db.run("ROLLBACK");
-                        console.error("Error updating ingredients:", err);
-                        return callback(err);
-                      }
-
-                      // Update steps
-                      Recipe.updateSteps(db, steps, recipeId, (err) => {
-                        if (err) {
-                          db.run("ROLLBACK");
-                          console.error("Error updating steps:", err);
-                          return callback(err);
-                        }
-
-                        // Commit transaction
-                        db.run("COMMIT", function (err) {
-                          if (err) {
-                            console.error("Error committing transaction:", err);
-                            return callback(err);
-                          }
-                          console.log("Recipe updated successfully with unique key:", uniqueKey);
-                          callback(null, uniqueKey);
-                        });
-                      });
-                    });
-                  }
-                );
-              }
-            );
-          }
+  static async searchRecipes(Nom_Recipe, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
+    try {
+      const fuzzyTerm = `%${Nom_Recipe}%`;
+  
+      // Query to search for recipes by name
+      const result = await client.query(
+        'SELECT * FROM "Recipe" WHERE "Nom_Recipe" ILIKE $1',
+        [fuzzyTerm]
+      );
+  
+      const recipes = result.rows.map((row) => {
+        return new Recipe(
+          row.Id_recipe,
+          row.Nom_Recipe,
+          row.Icon_recipe,
+          row.Fav_recipe,
+          row.unique_key_recipe,
+          row.Frk_user
         );
-      } catch (err) {
-        db.run("ROLLBACK");
-        console.error("Error updating recipe:", err);
-        callback(err);
-      }
-    });
-  }
-
-  static updateIngredients(db, ingredients, recipeId, callback) {
-    try {
-      db.run(
-        `DELETE FROM Ingredient WHERE FRK_recipe = ?`,
-        [recipeId],
-        (err) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Insert new ingredients after deletion
-          Recipe.insertIngredients(db, ingredients, recipeId, callback);
-        }
-      );
+      });
+  
+      callback(null, recipes);
     } catch (err) {
-      console.error("Error updating Ingredients", err);
+      console.error("Error searching recipes:", err);
       callback(err, null);
+    } finally {
+      // Release the client back to the pool
+      client.release();
     }
   }
+  
 
-  static updateSteps(db, steps, recipeId, callback) {
+  static async updateRecipeWithDetails(recipeData, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
     try {
-      db.run(
-        `DELETE FROM Step_recipe WHERE FRK_recipe = ?`,
-        [recipeId],
-        (err) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Insert new steps after deletion
-          Recipe.insertSteps(db, steps, recipeId, callback);
-        }
+      await client.query("BEGIN"); // Start the transaction
+  
+      const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
+  
+      // Update Recipe
+      await client.query(
+        `UPDATE "Recipe" 
+         SET "Nom_Recipe" = $1, "Fav_recipe" = $2
+         WHERE "unique_key_recipe" = $3`,
+        [recipe.name, recipe.fav, recipe.unique_key]
       );
+  
+      const uniqueKey = recipe.unique_key;
+  
+      // Retrieve the recipe ID using the unique_key_recipe
+      const recipeResult = await client.query(
+        `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+        [uniqueKey]
+      );
+  
+      if (recipeResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return callback(new Error("Recipe not found"));
+      }
+  
+      const recipeId = recipeResult.rows[0].Id_recipe;
+  
+      // Update Detail_recipe
+      await client.query(
+        `UPDATE "DetailRecipe"
+         SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
+             "Level_recipe" = $4, "Calories_recipe" = $5
+         WHERE "FRK_recipe" = $6`,
+        [
+          detail_recipe.detail,
+          detail_recipe.time,
+          detail_recipe.rate,
+          detail_recipe.level,
+          detail_recipe.calories,
+          recipeId,
+        ]
+      );
+  
+      // Update ingredients
+      await Recipe.updateIngredients(client, ingredients, recipeId);
+  
+      // Update steps
+      await Recipe.updateSteps(client, steps, recipeId);
+  
+      // Commit transaction
+      await client.query("COMMIT");
+  
+      console.log("Recipe updated successfully with unique key:", uniqueKey);
+      callback(null, uniqueKey);
     } catch (err) {
-      console.error("Error updating Steps", err);
-      callback(err, null);
+      await client.query("ROLLBACK");
+      console.error("Error updating recipe:", err);
+      callback(err);
+    } finally {
+      // Release the client back to the pool
+      client.release();
     }
   }
-
-
-
-  static deleteRecipe(recipeId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    db.run(
-      "DELETE FROM Recipe WHERE Id_recipe = ?",
-      [recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, false); // Recipe not found or not deleted
-          return;
-        }
-        callback(null, true); // Recipe deleted successfully
-      }
-    );
-    db.close();
+  
+  static async updateIngredients(client, ingredients, recipeId) {
+    try {
+      // Delete existing ingredients
+      await client.query(
+        `DELETE FROM "IngredientRecipe" WHERE "FRK_recipe" = $1`,
+        [recipeId]
+      );
+  
+      // Insert new ingredients
+      await Recipe.insertIngredients(client, ingredients, recipeId);
+    } catch (err) {
+      console.error("Error updating ingredients:", err);
+      throw err;
+    }
   }
+  
+  static async updateSteps(client, steps, recipeId) {
+    try {
+      // Delete existing steps
+      await client.query(
+        `DELETE FROM "StepRecipe" WHERE "FRK_recipe" = $1`,
+        [recipeId]
+      );
+  
+      // Insert new steps
+      await Recipe.insertSteps(client, steps, recipeId);
+    } catch (err) {
+      console.error("Error updating steps:", err);
+      throw err;
+    }
+  }
+  
+
+  static async deleteRecipe(recipeId, callback) {
+    const client = await pool.connect(); // Getting a client from the pool
+    try {
+      // Start a transaction
+      await client.query("BEGIN");
+  
+      // Delete recipe
+      const result = await client.query(
+        `DELETE FROM "Recipe" WHERE "Id_recipe" = $1`,
+        [recipeId]
+      );
+  
+      if (result.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return callback(null, false); // Recipe not found or not deleted
+      }
+  
+      // Commit transaction
+      await client.query("COMMIT");
+  
+      callback(null, true); // Recipe deleted successfully
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("Error deleting recipe:", err);
+      callback(err);
+    } finally {
+      // Release the client back to the pool
+      client.release();
+    }
+  }
+  
 
   // Add a method to get the User associated with this Recipe
   getUser(callback) {

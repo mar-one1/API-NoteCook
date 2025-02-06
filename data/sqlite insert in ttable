@@ -72,7 +72,6 @@ VALUES
   ;
 
 //pg 
--- Insert 100 rows into the Recipe table
 INSERT INTO "Recipe" ("Icon_recipe", "Fav_recipe", "Nom_recipe", "Frk_user", "Frk_categorie")
 VALUES
   (123, 1, 'Spaghetti Bolognese', 2, 5),
@@ -90,11 +89,7 @@ VALUES
   (777, 0, 'Strawberry Shortcake', 2, 3),
   (888, 1, 'Tomato Soup', 3, 7),
   (999, 0, 'Cheeseburger', 4, 1),
-  (1010, 1, 'Pasta Primavera', 1, 5),
-  -- Continue with more rows...
-  -- (You can generate random data for the remaining rows.)
-  -- ...
-  ;
+  (1010, 1, 'Pasta Primavera', 1, 5)
 
   INSERT INTO "DetailRecipe" ("Dt_recipe", "Level_recipe", "Dt_recipe_time", "Rate_recipe", "Calories_recipe", "FRK_recipe")
 VALUES
@@ -102,10 +97,8 @@ VALUES
   ('Preheat oven to 350°F', 1, 10, 5, 150, 2),
   ('Simmer chicken in sauce', 3, 30, 4, 400, 3),
   ('Toss lettuce with dressing', 1, 5, 4, 100, 4),
-  ('Mix mascarpone and sugar', 2, 15, 5, 250, 5),
-  -- Add more rows with data for other recipes
-  ;
-Inserting Data into Ingredients_Recipe Table (TABLE_INGREDIENT_RECIPE):
+  ('Mix mascarpone and sugar', 2, 15, 5, 250, 5)
+
 
 
 INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe","unit", "FRK_detail_recipe")
@@ -114,10 +107,9 @@ VALUES
   ('Olive Oil', '2','tbsp', 2),
   ('Chicken Thighs', '400','g', 3),
   ('Lettuce', '150','g', 4),
-  ('Mascarpone Cheese', '250','g', 5),
+  ('Mascarpone Cheese', '250','g', 5)
   -- Add more rows with data for other recipes
-  ;
-Inserting Data into Step_Recipe Table (TABLE_STEP_RECIPE):
+  
 
 
 INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
@@ -126,11 +118,11 @@ VALUES
   ('Grease baking pan', '456', '3 min', 2),
   ('Stir in tomato sauce', '789', '8 min', 3),
   ('Toss lettuce with dressing', '321', '5 min', 4),
-  ('Layer cheese mixture and ladyfingers', '654', '10 min', 5),
+  ('Layer cheese mixture and ladyfingers', '654', '10 min', 5)
   -- Add more rows with data for other recipes
-  ;
+  
 
-Inserting Data into Review_Recipe Table (TABLE_REVIEW_RECIPE):
+
 
 
 INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
@@ -141,4 +133,4 @@ VALUES
   ('Great salad recipe!', 4, 4),
   ('Superb dessert, a must-try.', 5, 5),
   -- Add more rows with data for other recipes
-  ;
+  

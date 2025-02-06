@@ -71,24 +71,32 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
   });
 });
 
-// Get a recipe by ID
+// Get a recipe by username
 router.get("/user/full/:username", validateRecipe.validateGetByIdUser, (req, res) => {
   const username = req.params.username;
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  Recipe.getAllFullRecipesByUsername(username, (err, recipe) => {
+
+  Recipe.getAllFullRecipesByUsername(username, (err, recipes) => {
     if (err) {
+      console.error("Database error:", err);
       return res.status(500).json({ error: err.message });
     }
-    if (!recipe) {
-      return res.status(406).json({ error: "Recipe not found" });
+
+    console.log("Fetched recipes for username:", username, recipes);
+
+    if (!recipes || recipes.length === 0) {
+      return res.status(404).json({ error: "No recipes found for this user" });
     }
-    res.json(recipe);
+
+    res.status(200).json(recipes);
   });
-}
-);
+});
+
+
 
 // Get a recipe by ID
 router.get("/:id", validateRecipe.validateGetByIdRecipe, (req, res) => {

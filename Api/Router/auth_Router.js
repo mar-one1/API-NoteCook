@@ -23,7 +23,7 @@ authRouter.post("/login", async (req, res) => {
     client = await pool.connect();
 
     // Find the user in the database
-    const query = `SELECT * FROM "User" WHERE username = $1`;
+    const query = `SELECT * FROM "User" WHERE "username" = $1`;
     const { rows } = await client.query(query, [username]);
 
     if (rows.length === 0) {
@@ -33,7 +33,7 @@ authRouter.post("/login", async (req, res) => {
     const user = rows[0];
 
     // Compare the provided password with the hashed password in the database
-    const isPasswordValid = await bcrypt.compare(password, user.Password_user);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Incorrect password" });
