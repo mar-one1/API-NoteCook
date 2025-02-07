@@ -370,8 +370,8 @@ class Recipe {
           "Recipe"."Nom_Recipe" ILIKE $1 OR
           "DetailRecipe"."Dt_recipe" ILIKE $1 OR
           "IngredientRecipe"."Ingredient_recipe" ILIKE $1 OR
-          "StepRecipe"."Detail_Step_recipe" ILIKE $1 OR
-          "ReviewRecipe"."Detail_Review_recipe" ILIKE $1
+          "StepRecipe"."Detail_step_recipe" ILIKE $1 OR
+          "ReviewRecipe"."Detail_review_recipe" ILIKE $1
         )`;
         params.push(`%${conditions.searchText}%`);
         whereClauseAdded = true;
