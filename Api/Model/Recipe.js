@@ -312,7 +312,7 @@ class Recipe {
   static async insertIngredients(client, ingredients, recipeId) {
     const promises = ingredients.map((ingredient) =>
       client.query(
-        `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "Unite", "FRK_recipe")
+        `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
          VALUES ($1, $2, $3, $4)`,
         [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, recipeId]
       )
@@ -324,7 +324,7 @@ class Recipe {
   static async insertReviews(client, reviews, recipeId) {
     const promises = reviews.map((review) =>
       client.query(
-        `INSERT INTO "ReviewRecipe" ("Detail_Review_recipe", "Rate_Review_recipe", "FRK_recipe")
+        `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
          VALUES ($1, $2, $3)`,
         [review.detailReview, review.rateReview, recipeId]
       )
@@ -462,7 +462,7 @@ class Recipe {
         row.Birthday_user,
         row.Email_user,
         row.Phonenumber_user,
-        row.Icon_user,
+        (row.Icon_user = null),
         row.password,
         row.Grade_user,
         row.Status_user,
@@ -691,7 +691,7 @@ class Recipe {
       const recipes = res.rows.map((row) => {
         return new Recipe(
           row.Id_recipe,           // Adjust field names as per your PostgreSQL schema
-          row.Nom_recipe,          // Adjust field names as per your PostgreSQL schema
+          row.Nom_Recipe,          // Adjust field names as per your PostgreSQL schema
           row.Icon_recipe,
           row.Fav_recipe,
           row.unique_key_recipe,
