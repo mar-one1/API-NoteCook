@@ -19,11 +19,10 @@ class Recipe {
   }
 
   static async createRecipe(name, icon, fav, unique_key, userId, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     const query =
       'INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user") VALUES ($1, $2, $3, $4, $5) RETURNING *';
     const values = [name, icon, fav, unique_key, userId];
-
     try {
       const result = await pool.query(query, values);
       const newRecipe = new Recipe(
@@ -38,71 +37,89 @@ class Recipe {
     } catch (err) {
       console.error("Error creating recipe:", err);
       callback(err, null);
-    } finally {
-      client.release(); // Release the client back to the pool
     }
   }
 
 
 
   // Helper function to get all image paths from the database
-  static async getAllImagePathsFromDatabase() {
-    const client = await pool.connect(); // Getting a client from the pool
+  static getAllImagePathsFromDatabase(callback) {
     const query = 'SELECT "Icon_recipe" FROM "Recipe"'; // Use double quotes for mixed-case identifiers
-    try {
-      const result = await pool.query(query); // Execute the query
-      const paths = result.rows.map((row) => row.Icon_recipe); // Map the rows to extract image paths
-      console.log("Paths retrieved from database:", paths);
-      return paths; // Return the array of image paths
-    } catch (err) {
-      console.error("Error getting all image paths from database:", err);
-      throw err; // Rethrow the error to be handled by the calling code
-    } finally {
-      client.release(); // Release the client back to the pool
-    }
-  }
-
-
-  static async getRecipeById(id) {
-    const client = await pool.connect(); // Get a client from the pool
-    const query = 'SELECT * FROM "Recipe" WHERE "Id_recipe" = $1';
-    try {
-      const result = await client.query(query, [id]); // Use the client to execute the query
-      if (result.rows.length === 0) {
-        return null; // Recipe not found
+  
+    this.pool.connect((err, client) => {
+      if (err) {
+        console.error("Error acquiring client", err.stack);
+        return callback(err, null); // Pass the error back to the callback
       }
-      const row = result.rows[0];
-      return new Recipe(
-        row.Id_recipe,
-        row.Nom_Recipe,
-        row.Icon_recipe,
-        row.Fav_recipe,
-        row.unique_key_recipe,
-        row.Frk_user
-      );
-    } catch (err) {
-      console.error("Error fetching recipe by ID:", err);
-      throw err; // Rethrow the error for higher-level handling
-    } finally {
-      client.release(); // Ensure the client is released back to the pool
-    }
+  
+      client.query(query, (err, result) => {
+        if (err) {
+          console.error("Error getting all image paths from database:", err);
+          return callback(err, null); // Pass the error back to the callback
+        }
+  
+        // Map the result to extract the image paths
+        const paths = result.rows.map((row) => row.Icon_recipe);
+        console.log("Paths retrieved from database:", paths);
+  
+        callback(null, paths); // Pass the result (image paths) back through the callback
+      });
+    });
+  }
+  
+  
+
+
+  static getRecipeById(id, callback) {
+    const query = 'SELECT * FROM "Recipe" WHERE "Id_recipe" = $1';
+
+    this.pool.connect((err, client, release) => {
+      if (err) {
+        console.error("Error acquiring client", err.stack);
+        return callback(err, null);
+      }
+
+      client.query(query, [id], (err, result) => {
+        release(); // Release the client back to the pool
+
+        if (err) {
+          console.error("Error fetching recipe by ID:", err);
+          return callback(err, null);
+        }
+
+        if (result.rows.length === 0) {
+          return callback(null, null); // Recipe not found
+        }
+
+        const row = result.rows[0];
+        const recipe = new Recipe(
+          row.Id_recipe,
+          row.Nom_Recipe,
+          row.Icon_recipe,
+          row.Fav_recipe,
+          row.unique_key_recipe,
+          row.Frk_user
+        );
+        callback(null, recipe); // Return the recipe object
+      });
+    });
   }
 
 
 
   static getAllFullRecipesByUsername(username, callback) {
-    pool.connect((err, client, release) => {
+    pool.connect((err, pool, release) => {
       if (err) {
-        console.error("Error acquiring client from pool:", err);
+        console.error("Error acquiring pool from pool:", err);
         callback(err, null);
         return;
       }
   
       // Get the user by username
       const userQuery = 'SELECT * FROM "User" WHERE "username" = $1';
-      client.query(userQuery, [username], (err, userResult) => {
+      pool.query(userQuery, [username], (err, userResult) => {
         if (err) {
-          release(); // Release client back to the pool
+          release(); // Release pool back to the pool
           callback(err, null);
           return;
         }
@@ -134,8 +151,8 @@ class Recipe {
           WHERE "Recipe"."Frk_user" = $1
         `;
   
-        client.query(recipeQuery, [userId], (err, result) => {
-          release(); // Release client back to the pool
+        pool.query(recipeQuery, [userId], (err, result) => {
+          release(); // Release pool back to the pool
   
           if (err) {
             callback(err, null);
@@ -230,61 +247,60 @@ class Recipe {
 
     try {
       // Connect to PostgreSQL
-      await client.connect();
 
       // Begin transaction
-      await Recipe.beginTransaction(client);
+      await Recipe.beginTransaction(pool);
 
       const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
 
       // Insert recipe
-      const recipeId = await Recipe.insertRecipe(client, recipe);
+      const recipeId = await Recipe.insertRecipe(pool, recipe);
 
       // Insert detail recipe
-      await Recipe.insertDetailRecipe(client, detail_recipe, recipeId);
+      await Recipe.insertDetailRecipe(pool, detail_recipe, recipeId);
 
       // Insert ingredients
-      await Recipe.insertIngredients(client, ingredients, recipeId);
+      await Recipe.insertIngredients(pool, ingredients, recipeId);
 
       // Insert steps
-      await Recipe.insertSteps(client, steps, recipeId);
+      await Recipe.insertSteps(pool, steps, recipeId);
 
       // Insert reviews
-      await Recipe.insertReviews(client, reviews, recipeId);
+      await Recipe.insertReviews(pool, reviews, recipeId);
 
       // Commit transaction
-      await Recipe.commitTransaction(client);
+      await Recipe.commitTransaction(pool);
 
       console.log("Recipe inserted successfully with ID:", recipeId);
       callback(null, recipeId);
     } catch (err) {
       // Rollback transaction if an error occurs
-      await Recipe.rollbackTransaction(client);
+      await Recipe.rollbackTransaction(pool);
       console.error("Error creating recipe:", err);
       callback(err);
     } finally {
-      await client.end(); // Close the connection to PostgreSQL
+      await pool.end(); // Close the connection to PostgreSQL
     }
   }
 
   // Helper function to begin a transaction
-  static async beginTransaction(client) {
-    return client.query('BEGIN');
+  static async beginTransaction(pool) {
+    return pool.query('BEGIN');
   }
 
   // Helper function to commit a transaction
-  static async commitTransaction(client) {
-    return client.query('COMMIT');
+  static async commitTransaction(pool) {
+    return pool.query('COMMIT');
   }
 
   // Helper function to rollback a transaction
-  static async rollbackTransaction(client) {
-    return client.query('ROLLBACK');
+  static async rollbackTransaction(pool) {
+    return pool.query('ROLLBACK');
   }
 
   // Insert recipe into Recipe table
-  static async insertRecipe(client, recipe) {
-    const result = await client.query(
+  static async insertRecipe(pool, recipe) {
+    const result = await pool.query(
       `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
        VALUES ($1, $2, $3, $4, $5) RETURNING Id_recipe`,
       [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
@@ -293,8 +309,8 @@ class Recipe {
   }
 
   // Insert detail recipe into Detail_recipe table
-  static async insertDetailRecipe(client, detail_recipe, recipeId) {
-    await client.query(
+  static async insertDetailRecipe(pool, detail_recipe, recipeId) {
+    await pool.query(
       `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
@@ -309,9 +325,9 @@ class Recipe {
   }
 
   // Insert ingredients into Ingredient table
-  static async insertIngredients(client, ingredients, recipeId) {
+  static async insertIngredients(pool, ingredients, recipeId) {
     const promises = ingredients.map((ingredient) =>
-      client.query(
+      pool.query(
         `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
          VALUES ($1, $2, $3, $4)`,
         [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, recipeId]
@@ -321,9 +337,9 @@ class Recipe {
   }
 
   // Insert reviews into Review_recipe table
-  static async insertReviews(client, reviews, recipeId) {
+  static async insertReviews(pool, reviews, recipeId) {
     const promises = reviews.map((review) =>
-      client.query(
+      pool.query(
         `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
          VALUES ($1, $2, $3)`,
         [review.detailReview, review.rateReview, recipeId]
@@ -333,9 +349,9 @@ class Recipe {
   }
 
   // Insert steps into Step_recipe table
-  static async insertSteps(client, steps, recipeId) {
+  static async insertSteps(pool, steps, recipeId) {
     const promises = steps.map((step) =>
-      client.query(
+      pool.query(
         `INSERT INTO "StepRecipe" ("Detail_Step_recipe", "Image_Step_recipe", "Time_Step_recipe", "FRK_recipe")
          VALUES ($1, $2, $3, $4)`,
         [step.detailStep, step.imageStep, step.timeStep, recipeId]
@@ -346,7 +362,7 @@ class Recipe {
 
 
   static async getRecipesByConditions(conditions, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
       let query = `
         SELECT 
@@ -392,7 +408,7 @@ class Recipe {
       }
 
       // Execute the query
-      const result = await client.query(query, params);
+      const result = await pool.query(query, params);
 
       // Process the rows to remove duplicates
       const recipeSet = new Set();
@@ -418,14 +434,11 @@ class Recipe {
     } catch (err) {
       console.error("Error getting recipes by conditions:", err);
       callback(err, null);
-    } finally {
-      // Close the database connection
-      client.release();  // Release the client back to the pool
     }
   }
 
   static async getFullRecipeById(id, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
       const sql = `
         SELECT 
@@ -444,7 +457,7 @@ class Recipe {
         WHERE "Recipe"."Id_recipe" = $1
       `;
   
-      const result = await client.query(sql, [id]);
+      const result = await pool.query(sql, [id]);
   
       if (result.rows.length === 0) {
         callback(null, null); // Recipe not found
@@ -497,11 +510,11 @@ class Recipe {
         // Ensure uniqueness for each entity type
         ingredientSet.add(
           JSON.stringify({
-            id: row.Id_Ingredient_recipe,
+            id: row.id_Ingredient_recipe,
             ingredient: row.Ingredient_recipe,
-            poidIngredient: row.PoidIngredient_recipe_recipe,
+            poidIngredient: row.PoidIngredient_recipe,
             unite: row.unit,
-            recipeId: row.FRK_recipe,
+            recipeId: row.FRK_detail_recipe,
           })
         );
   
@@ -542,9 +555,6 @@ class Recipe {
     } catch (err) {
       console.error("Error full retrieving recipe by id: " + id, err);
       callback(err, null);
-    } finally {
-      // Release the PostgreSQL client back to the pool
-      client.release();
     }
   }
   
@@ -579,11 +589,9 @@ class Recipe {
 
 
   static async updateRecipeImage(unique, imagebyte, callback = () => { }) {
-    const client = await pool.connect();  // Get a client from the pool
-
     try {
       // Retrieve the current image path from the Recipe table
-      const res = await client.query(
+      const res = await pool.query(
         `SELECT "Icon_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
         [unique]
       );
@@ -595,7 +603,7 @@ class Recipe {
       const oldPath = res.rows[0].Icon_recipe;
 
       // Update the Recipe table with the new image byte data
-      const updateRes = await client.query(
+      const updateRes = await pool.query(
         `UPDATE "Recipe" SET "Icon_recipe" = $1 WHERE "unique_key_recipe" = $2`,
         [imagebyte, unique]
       );
@@ -623,21 +631,19 @@ class Recipe {
     } catch (err) {
       console.error("Error updating recipe image:", err);
       callback(err);
-    } finally {
-      client.release();  // Release the client back to the pool
     }
   }
 
   static async getAllRecipes(callback) {
-    const client = await pool.connect();  // Get a client from the pool
+       // Get a pool from the pool
 
     try {
-      const res = await client.query('SELECT * FROM "Recipe"');
+      const res = await pool.query('SELECT * FROM "Recipe"');
 
       const recipes = res.rows.map((row) => {
         return new Recipe(
           row.Id_recipe,           // Adjust field names as per your PostgreSQL schema
-          row.Nom_recipe,          // Adjust field names as per your PostgreSQL schema
+          row.Nom_Recipe,          // Adjust field names as per your PostgreSQL schema
           row.Icon_recipe,
           row.Fav_recipe,
           row.unique_key_recipe,
@@ -649,16 +655,14 @@ class Recipe {
     } catch (err) {
       console.error("Error getting all recipes:", err);
       callback(err, null);
-    } finally {
-      client.release();  // Release the client back to the pool
     }
   }
 
   static async getUserByRecipeId(recipeId, callback) {
-    const client = await pool.connect();  // Get a client from the pool
+       // Get a pool from the pool
 
     try {
-      const res = await client.query(
+      const res = await pool.query(
         'SELECT "Frk_user" FROM "Recipe" WHERE "Id_recipe" = $1', 
         [recipeId]
       );
@@ -668,22 +672,20 @@ class Recipe {
         return;
       }
 
-      const userId = res.rows[0].frk_user;
+      const userId = res.rows[0].Frk_user;
       UserModel.getUserById(userId, callback);  // Use the UserModel to get the user by userId
     } catch (err) {
       console.error('Error retrieving user by recipe ID:', err);
       callback(err, null);
-    } finally {
-      client.release();  // Release the client back to the pool
     }
   }
 
   // Get all recipes by user ID
   static async getRecipesByUserId(userId, callback) {
-    const client = await pool.connect();  // Get a client from the pool
+       // Get a pool from the pool
 
     try {
-      const res = await client.query(
+      const res = await pool.query(
         'SELECT * FROM "Recipe" WHERE "Frk_user" = $1', 
         [userId]
       );
@@ -703,19 +705,17 @@ class Recipe {
     } catch (err) {
       console.error('Error getting recipes by user ID:', err);
       callback(err, null);
-    } finally {
-      client.release();  // Release the client back to the pool
     }
   }
 
 
   static async getRecipesByUsernameUser(username, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
       console.log(username);
   
       // Get the user by username
-      const userResult = await client.query(
+      const userResult = await pool.query(
         'SELECT * FROM "User" WHERE "username" = $1',
         [username]
       );
@@ -730,7 +730,7 @@ class Recipe {
       console.log(id);
   
       // Get the recipes by user ID
-      const recipeResult = await client.query(
+      const recipeResult = await pool.query(
         'SELECT * FROM "Recipe" WHERE "Frk_user" = $1',
         [id]
       );
@@ -750,20 +750,17 @@ class Recipe {
     } catch (err) {
       console.error("Error getting recipes by username:", err);
       callback(err, null);
-    } finally {
-      // Release the client back to the pool
-      client.release();
     }
   }
   
 
   static async searchRecipes(Nom_Recipe, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
       const fuzzyTerm = `%${Nom_Recipe}%`;
   
       // Query to search for recipes by name
-      const result = await client.query(
+      const result = await pool.query(
         'SELECT * FROM "Recipe" WHERE "Nom_Recipe" ILIKE $1',
         [fuzzyTerm]
       );
@@ -783,22 +780,19 @@ class Recipe {
     } catch (err) {
       console.error("Error searching recipes:", err);
       callback(err, null);
-    } finally {
-      // Release the client back to the pool
-      client.release();
     }
   }
   
 
   static async updateRecipeWithDetails(recipeData, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
-      await client.query("BEGIN"); // Start the transaction
+      await pool.query("BEGIN"); // Start the transaction
   
       const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
   
       // Update Recipe
-      await client.query(
+      await pool.query(
         `UPDATE "Recipe" 
          SET "Nom_Recipe" = $1, "Fav_recipe" = $2
          WHERE "unique_key_recipe" = $3`,
@@ -808,20 +802,20 @@ class Recipe {
       const uniqueKey = recipe.unique_key;
   
       // Retrieve the recipe ID using the unique_key_recipe
-      const recipeResult = await client.query(
+      const recipeResult = await pool.query(
         `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
         [uniqueKey]
       );
   
       if (recipeResult.rows.length === 0) {
-        await client.query("ROLLBACK");
+        await pool.query("ROLLBACK");
         return callback(new Error("Recipe not found"));
       }
   
       const recipeId = recipeResult.rows[0].Id_recipe;
   
       // Update Detail_recipe
-      await client.query(
+      await pool.query(
         `UPDATE "DetailRecipe"
          SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
              "Level_recipe" = $4, "Calories_recipe" = $5
@@ -837,52 +831,49 @@ class Recipe {
       );
   
       // Update ingredients
-      await Recipe.updateIngredients(client, ingredients, recipeId);
+      await Recipe.updateIngredients(pool, ingredients, recipeId);
   
       // Update steps
-      await Recipe.updateSteps(client, steps, recipeId);
+      await Recipe.updateSteps(pool, steps, recipeId);
   
       // Commit transaction
-      await client.query("COMMIT");
+      await pool.query("COMMIT");
   
       console.log("Recipe updated successfully with unique key:", uniqueKey);
       callback(null, uniqueKey);
     } catch (err) {
-      await client.query("ROLLBACK");
+      await pool.query("ROLLBACK");
       console.error("Error updating recipe:", err);
       callback(err);
-    } finally {
-      // Release the client back to the pool
-      client.release();
     }
   }
   
-  static async updateIngredients(client, ingredients, recipeId) {
+  static async updateIngredients(pool, ingredients, recipeId) {
     try {
       // Delete existing ingredients
-      await client.query(
+      await pool.query(
         `DELETE FROM "IngredientRecipe" WHERE "FRK_recipe" = $1`,
         [recipeId]
       );
   
       // Insert new ingredients
-      await Recipe.insertIngredients(client, ingredients, recipeId);
+      await Recipe.insertIngredients(pool, ingredients, recipeId);
     } catch (err) {
       console.error("Error updating ingredients:", err);
       throw err;
     }
   }
   
-  static async updateSteps(client, steps, recipeId) {
+  static async updateSteps(pool, steps, recipeId) {
     try {
       // Delete existing steps
-      await client.query(
+      await pool.query(
         `DELETE FROM "StepRecipe" WHERE "FRK_recipe" = $1`,
         [recipeId]
       );
   
       // Insert new steps
-      await Recipe.insertSteps(client, steps, recipeId);
+      await Recipe.insertSteps(pool, steps, recipeId);
     } catch (err) {
       console.error("Error updating steps:", err);
       throw err;
@@ -891,33 +882,30 @@ class Recipe {
   
 
   static async deleteRecipe(recipeId, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+    
     try {
       // Start a transaction
-      await client.query("BEGIN");
+      await pool.query("BEGIN");
   
       // Delete recipe
-      const result = await client.query(
+      const result = await pool.query(
         `DELETE FROM "Recipe" WHERE "Id_recipe" = $1`,
         [recipeId]
       );
   
       if (result.rowCount === 0) {
-        await client.query("ROLLBACK");
+        await pool.query("ROLLBACK");
         return callback(null, false); // Recipe not found or not deleted
       }
   
       // Commit transaction
-      await client.query("COMMIT");
+      await pool.query("COMMIT");
   
       callback(null, true); // Recipe deleted successfully
     } catch (err) {
-      await client.query("ROLLBACK");
+      await pool.query("ROLLBACK");
       console.error("Error deleting recipe:", err);
       callback(err);
-    } finally {
-      // Release the client back to the pool
-      client.release();
     }
   }
   

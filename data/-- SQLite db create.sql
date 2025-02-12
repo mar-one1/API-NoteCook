@@ -258,13 +258,14 @@ CREATE TABLE "FavoriteUserRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
 );
 -- Create the message table
-CREATE TABLE IF NOT EXISTS messages (
-  id SERIAL PRIMARY KEY,
-  recipeid INTEGER,
-  senderid INTEGER,
-  receiverid INTEGER,
-  message TEXT,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS "messages" (
+    "id" SERIAL PRIMARY KEY,
+    "recipeId" INTEGER NOT NULL,
+    "senderId" INTEGER NOT NULL,
+    "receiverId" INTEGER NOT NULL,
+    "message" TEXT NOT NULL,
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 

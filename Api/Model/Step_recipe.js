@@ -1,5 +1,5 @@
-const sqlite3 = require('sqlite3').verbose();
-const Recipe = require('../Model/Recipe'); // Import the Recipe model
+const pool = require("../../data/database");
+const Recipe = require("../Model/Recipe"); // Import the Recipe model
 
 class StepRecipe {
   constructor(id, detailStep, imageStep, timeStep, recipeId) {
@@ -11,119 +11,115 @@ class StepRecipe {
   }
 
   static createStepRecipe(detailStep, imageStep, timeStep, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)',
-      [detailStep, imageStep, timeStep, recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newStepRecipe = new StepRecipe(
-          this.lastID,
-          detailStep,
-          imageStep,
-          timeStep,
-          recipeId
-        );
-        callback(null, newStepRecipe);
+    const query = `
+      INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
+      VALUES ($1, $2, $3, $4)
+      RETURNING "Id_step_recipe", "Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe"
+    `;
+    const values = [detailStep, imageStep, timeStep, recipeId];
+
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        callback(err);
+        return;
       }
-    );
-    db.close();
+      const row = result.rows[0];
+      const newStepRecipe = new StepRecipe(
+        row.id_step_recipe,
+        row.detail_step_recipe,
+        row.image_step_recipe,
+        row.time_step_recipe,
+        row.frk_recipe
+      );
+      callback(null, newStepRecipe);
+    });
   }
 
   static getAllStepRecipes(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all('SELECT * FROM Step_recipe', (err, rows) => {
+    const query = 'SELECT * FROM "StepRecipe"';
+
+    pool.query(query, (err, result) => {
       if (err) {
         callback(err, null);
         return;
       }
-      const stepRecipes = rows.map((row) => {
+      const stepRecipes = result.rows.map((row) => {
         return new StepRecipe(
-          row.Id_Step_recipe,
-          row.Detail_Step_recipe,
-          row.Image_Step_recipe,
-          row.Time_Step_recipe,
+          row.Id_step_recipe,
+          row.Detail_step_recipe,
+          row.Image_step_recipe,
+          row.Time_step_recipe,
           row.FRK_recipe
         );
       });
       callback(null, stepRecipes);
     });
-    db.close();
   }
 
   static getStepsByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.all(
-      'SELECT * FROM Step_recipe WHERE FRK_recipe = ?',
-      [recipeId],
-      (err, rows) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        const steps = rows.map((row) => {
-          return new StepRecipe(
-            row.Id_Step_recipe,
-            row.Detail_Step_recipe,
-            row.Image_Step_recipe,
-            row.Time_Step_recipe,
-            row.FRK_recipe
-          );
-        });
-        callback(null, steps);
+    const query = 'SELECT * FROM "StepRecipe" WHERE "FRK_recipe" = $1';
+    const values = [recipeId];
+
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        callback(err, null);
+        return;
       }
-    );
-    db.close();
+      const steps = result.rows.map((row) => {
+        return new StepRecipe(
+          row.Id_step_recipe,
+          row.Detail_step_recipe,
+          row.Image_step_recipe,
+          row.Time_step_recipe,
+          row.FRK_recipe
+        );
+      });
+      callback(null, steps);
+    });
   }
 
   static updateStepRecipe(stepId, detailStep, imageStep, timeStep, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'UPDATE Step_recipe SET Detail_Step_recipe = ?, Image_Step_recipe = ?, Time_Step_recipe = ?, FRK_recipe = ? WHERE Id_Step_recipe = ?',
-      [detailStep, imageStep, timeStep, recipeId, stepId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, null); // Step recipe not found or not updated
-          return;
-        }
-        const updatedStepRecipe = new StepRecipe(
-          stepId,
-          detailStep,
-          imageStep,
-          timeStep,
-          recipeId
-        );
-        callback(null, updatedStepRecipe);
+    const query = `
+      UPDATE "StepRecipe"
+      SET "Detail_step_recipe" = $1, "Image_step_recipe" = $2, "Time_step_recipe" = $3, "FRK_recipe" = $4
+      WHERE "Id_step_recipe" = $"5"
+      RETURNING "Id_step_recipe", "Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe"
+    `;
+    const values = [detailStep, imageStep, timeStep, recipeId, stepId];
+
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        callback(err);
+        return;
       }
-    );
-    db.close();
+      if (result.rowCount === 0) {
+        callback(null, null); // Step recipe not found
+        return;
+      }
+      const row = result.rows[0];
+      const updatedStepRecipe = new StepRecipe(
+        row.Id_step_recipe,
+        row.Detail_step_recipe,
+        row.Image_step_recipe,
+        row.Time_step_recipe,
+        row.FRK_recipe
+      );
+      callback(null, updatedStepRecipe);
+    });
   }
 
   static deleteStepRecipe(stepId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'DELETE FROM Step_recipe WHERE Id_Step_recipe = ?',
-      [stepId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, false); // Step recipe not found or not deleted
-          return;
-        }
-        callback(null, true); // Step recipe deleted successfully
+    const query = 'DELETE FROM "StepRecipe" WHERE "Id_step_recipe" = $1';
+    const values = [stepId];
+
+    pool.query(query, values, (err, result) => {
+      if (err) {
+        callback(err);
+        return;
       }
-    );
-    db.close();
+      const isDeleted = result.rowCount > 0; // True if a row was deleted, false otherwise
+      callback(null, isDeleted);
+    });
   }
 }
 

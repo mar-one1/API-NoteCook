@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
+const pool = require('../../data/database'); // Assuming pool is set up for PostgreSQL
 const RecipeModel = require('./Recipe'); // Import the Recipe model
 
 class DetailRecipe {
@@ -12,46 +12,59 @@ class DetailRecipe {
     this.recipeId = recipeId;
   }
 
-  static createDetailRecipe(detail, time, rate, level, calories, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO Detail_recipe (Dt_recipe, Dt_recipe_time, Rate_recipe, Level_recipe, Calories_recipe, FRK_recipe) VALUES (?, ?, ?, ?, ?, ?)',
-      [detail, time, rate, level, calories, recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newDetailRecipe = new DetailRecipe(
-          this.lastID,
-          detail,
-          time,
-          rate,
-          level,
-          calories,
-          recipeId
-        );
-        callback(null, newDetailRecipe);
-      }
-    );
-    db.close();
+  static async createDetailRecipe(detail, time, rate, level, calories, recipeId, callback) {
+    try {
+      const result = await pool.query(
+        `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe") 
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [detail, time, rate, level, calories, recipeId]
+      );
+
+      const newDetailRecipe = result.rows[0];
+      callback(null, new DetailRecipe(
+        newDetailRecipe.Id_Detail_recipe,
+        newDetailRecipe.Dt_recipe,
+        newDetailRecipe.Dt_recipe_time,
+        newDetailRecipe.Rate_recipe,
+        newDetailRecipe.Level_recipe,
+        newDetailRecipe.Calories_recipe,
+        newDetailRecipe.FRK_recipe
+      ));
+    } catch (err) {
+      callback(err);
+    }
   }
 
-  static getDetailRecipeById(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.get(
-      'SELECT * FROM Detail_recipe WHERE Id_Detail_recipe = ?',
-      [id],
-      (err, row) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!row) {
-          callback(null, null); // DetailRecipe not found
-          return;
-        }
-        const detailRecipe = new DetailRecipe(
+  static async getAllDetailRecipes(callback) {
+    try {
+      const result = await pool.query('SELECT * FROM "DetailRecipe"');
+      const detailRecipes = result.rows.map(row => new DetailRecipe(
+        row.Id_Detail_recipe,
+        row.Dt_recipe,
+        row.Dt_recipe_time,
+        row.Rate_recipe,
+        row.Level_recipe,
+        row.Calories_recipe,
+        row.FRK_recipe
+      ));
+      callback(null, detailRecipes);
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  static async getDetailRecipeById(id, callback) {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM "DetailRecipe" WHERE "Id_detail_recipe" = $1`,
+        [id]
+      );
+      
+      if (result.rows.length === 0) {
+        callback(null, null); // DetailRecipe not found
+      } else {
+        const row = result.rows[0];
+        callback(null, new DetailRecipe(
           row.Id_Detail_recipe,
           row.Dt_recipe,
           row.Dt_recipe_time,
@@ -59,70 +72,123 @@ class DetailRecipe {
           row.Level_recipe,
           row.Calories_recipe,
           row.FRK_recipe
-        );
-        callback(null, detailRecipe);
+        ));
       }
-    );
-    db.close();
+    } catch (err) {
+      callback(err, null);
+    }
   }
-  static getDetailRecipeByfkRecipe(FK, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.get(
-      'SELECT * FROM Detail_recipe WHERE FRK_recipe = ?',
-      [FK],
-      (err, row) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!row) {
-          callback(null, null); // DetailRecipe not found
-          return;
-        }
-        const detailRecipe = new DetailRecipe(
-          row.Id_detail_recipe,
+
+  static async getDetailRecipeByfkRecipe(FK, callback) {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM "DetailRecipe" WHERE "FRK_recipe" = $1`,
+        [FK]
+      );
+
+      if (result.rows.length === 0) {
+        callback(null, null); // DetailRecipe not found
+      } else {
+        const row = result.rows[0];
+        callback(null, new DetailRecipe(
+          row.Id_Detail_recipe,
           row.Dt_recipe,
           row.Dt_recipe_time,
           row.Rate_recipe,
           row.Level_recipe,
           row.Calories_recipe,
           row.FRK_recipe
-        );
-        console.log(detailRecipe);
-        callback(null, detailRecipe);
+        ));
       }
-    );
-    db.close();
+    } catch (err) {
+      callback(err, null);
+    }
   }
 
-  static getRecipeByDetailrecipeId(detailRecipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.get(
-      'SELECT Frk_recipe FROM Detail_recipe WHERE Id_Detail_recipe = ?',
-      [detailRecipeId],
-      (err, row) => {
-        if (err) {
-          callback(err, null);
-          return;
-        }
-        if (!row) {
-          callback(null, null); // Detail_Recipe not found
-          return;
-        }
+  static async getRecipeByDetailrecipeId(detailRecipeId, callback) {
+    try {
+      const result = await pool.query(
+        `SELECT "FRK_recipe" FROM "DetailRecipe" WHERE "Id_detail_recipe" = $1`,
+        [detailRecipeId]
+      );
 
-        const recipeId = row.FRK_recipe;
+      if (result.rows.length === 0) {
+        callback(null, null); // Detail_Recipe not found
+      } else {
+        const recipeId = result.rows[0].FRK_recipe;
         RecipeModel.getRecipeById(recipeId, callback);
       }
-    );
-    db.close();
+    } catch (err) {
+      callback(err, null);
+    }
   }
 
   // Add a method to get the associated Recipe for this DetailRecipe
-  getRecipe(callback) {
-    RecipeModel.getRecipeById(this.recipeId, callback);
+  async getRecipe(callback) {
+    try {
+      const result = await pool.query(
+        `SELECT "FRK_recipe" FROM "DetailRecipe" WHERE "Id_detail_recipe" = $1`,
+        [this.id]
+      );
+
+      if (result.rows.length === 0) {
+        callback(null, null); // No recipe found
+      } else {
+        const recipeId = result.rows[0].FRK_recipe;
+        RecipeModel.getRecipeById(recipeId, callback);
+      }
+    } catch (err) {
+      callback(err, null);
+    }
   }
 
-  // Add more methods as needed
+  // Method to update a DetailRecipe
+  static async updateDetailRecipe(id, detail, time, rate, level, calories, recipeId, callback) {
+    try {
+      const result = await pool.query(
+        `UPDATE "DetailRecipe" 
+         SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, "Level_recipe" = $4, 
+             "Calories_recipe" = $5, "FRK_recipe" = $6 
+         WHERE "Id_detail_recipe" = $7 RETURNING *`,
+        [detail, time, rate, level, calories, recipeId, id]
+      );
+
+      if (result.rows.length === 0) {
+        callback(null, null); // DetailRecipe not updated
+      } else {
+        const updatedDetailRecipe = result.rows[0];
+        callback(null, new DetailRecipe(
+          updatedDetailRecipe.Id_Detail_recipe,
+          updatedDetailRecipe.Dt_recipe,
+          updatedDetailRecipe.Dt_recipe_time,
+          updatedDetailRecipe.Rate_recipe,
+          updatedDetailRecipe.Level_recipe,
+          updatedDetailRecipe.Calories_recipe,
+          updatedDetailRecipe.FRK_recipe
+        ));
+      }
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  // Method to delete a DetailRecipe
+  static async deleteDetailRecipe(id, callback) {
+    try {
+      const result = await pool.query(
+        `DELETE FROM "DetailRecipe" WHERE "Id_detail_recipe" = $1 RETURNING *`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        callback(null, false); // DetailRecipe not found or not deleted
+      } else {
+        callback(null, true); // DetailRecipe deleted successfully
+      }
+    } catch (err) {
+      callback(err);
+    }
+  }
 }
 
 module.exports = DetailRecipe;

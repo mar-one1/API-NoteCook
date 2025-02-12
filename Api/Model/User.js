@@ -80,11 +80,11 @@ class User {
     url,
     callback
   ) {
-    const client = await pool.connect(); // Getting a client from the pool
+     // Getting a pool from the pool
     try {
       // Check if the user already exists
       const checkQuery = 'SELECT * FROM "User" WHERE username = $1';
-      const checkRes = await client.query(checkQuery, [username]);
+      const checkRes = await pool.query(checkQuery, [username]);
   
       if (checkRes.rows.length > 0) {
         console.log("User already exists");
@@ -95,7 +95,7 @@ class User {
       // User doesn't exist, insert them into the database
       const insertQuery =
         'INSERT INTO "User" (username, "Firstname_user", "Lastname_user", "Birthday_user", "Email_user", "Phonenumber_user", "Icon_user", password, "Grade_user", "Status_user") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *';
-      const insertRes = await client.query(insertQuery, [
+      const insertRes = await pool.query(insertQuery, [
         username,
         firstname,
         lastname,
@@ -128,8 +128,6 @@ class User {
     } catch (err) {
       console.error("Error Create User", err);
       callback(err, null);
-    } finally {
-      client.release(); // Release the client back to the pool
     }
   }
   
@@ -159,10 +157,10 @@ class User {
    *         description: Internal server error
    */
   static async getUserById(id, callback) {
-    const client = await pool.connect(); // Getting a client from the pool
+     // Getting a pool from the pool
     try {
       const query = 'SELECT * FROM "User" WHERE "Id_user" = $1';
-      const res = await client.query(query, [id]);
+      const res = await pool.query(query, [id]);
   
       if (res.rows.length === 0) {
         callback(null, null); // User not found
@@ -188,18 +186,16 @@ class User {
     } catch (err) {
       console.error("Error getting user by id: " + id, err);
       callback(err, null);
-    } finally {
-      client.release(); // Release the client after use
     }
   }
   
 
   // Helper function to get all image paths from the database
   static async getAllImagePathsFromDatabase(callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'SELECT "Url_image" FROM "User"';
-      const res = await client.query(query);
+      const res = await pool.query(query);
   
       const paths = res.rows.map((row) => row.Url_image);
       console.log("Paths getting from db:", paths);
@@ -208,17 +204,15 @@ class User {
     } catch (err) {
       console.error("Error getting all image paths from database:", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
 
   static async updateUserImage(username, imagebyte, callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'UPDATE "User" SET "Url_image" = $1 WHERE username = $2';
-      const res = await client.query(query, [imagebyte, username]);
+      const res = await pool.query(query, [imagebyte, username]);
   
       if (res.rowCount === 0) {
         callback(null, null); // User not found or not updated
@@ -231,17 +225,15 @@ class User {
     } catch (err) {
       console.error("Error updating user image", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
 
   static async getUserImage(username, callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'SELECT Icon_user FROM "User" WHERE username = $1';
-      const res = await client.query(query, [username]);
+      const res = await pool.query(query, [username]);
   
       if (res.rows.length === 0) {
         callback(null, null); // User not found
@@ -253,17 +245,15 @@ class User {
     } catch (err) {
       console.error("Error getting user image", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
 
   static async getUserByUsername(usernameUser, callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'SELECT * FROM "User" WHERE username = $1';
-      const res = await client.query(query, [usernameUser]);
+      const res = await pool.query(query, [usernameUser]);
   
       if (res.rows.length === 0) {
         callback(null, null); // User not found
@@ -290,8 +280,6 @@ class User {
     } catch (err) {
       console.error("Error getting user by username: " + usernameUser, err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
@@ -324,10 +312,10 @@ class User {
     }
   }
   static async getAllUsers(callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'SELECT * FROM "User"';
-      const res = await client.query(query);
+      const res = await pool.query(query);
   
       const users = res.rows.map((row) => {
         return new User(
@@ -350,8 +338,6 @@ class User {
     } catch (err) {
       console.error("Error getting all users", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
@@ -371,7 +357,7 @@ class User {
     url,
     callback
   ) {
-    const client = await pool.connect();
+    
     try {
       // If password is being updated, hash it
       const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : null;
@@ -381,7 +367,7 @@ class User {
         WHERE Id_user = $11
         RETURNING "Id_user"`;
 
-      const res = await client.query(query, [
+      const res = await pool.query(query, [
         firstname, lastname, birthday, email, phoneNumber, icon, hashedPassword || password, grade, status, url, UserId
       ]);
 
@@ -409,17 +395,15 @@ class User {
     } catch (err) {
       console.error("Error updating user", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
 
   static async deleteUser(id, callback) {
-    const client = await pool.connect();
+    
     try {
       // Delete user image file if needed
       const queryImage = 'SELECT "Icon_user" FROM "User" WHERE "Id_user" = $1';
-      const resImage = await client.query(queryImage, [id]);
+      const resImage = await pool.query(queryImage, [id]);
 
       if (resImage.rows.length === 0) {
         callback(null, "User not found");
@@ -439,7 +423,7 @@ class User {
 
       // Now delete the user record
       const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING *';
-      const resDelete = await client.query(query, [id]);
+      const resDelete = await pool.query(query, [id]);
 
       if (resDelete.rowCount === 0) {
         callback(null, "User not found");
@@ -450,8 +434,6 @@ class User {
     } catch (err) {
       console.error("Error deleting user", err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
 
@@ -471,7 +453,7 @@ class User {
     url,
     callback
   ) {
-    const client = await pool.connect();
+    
     try {
       console.log("test" + username);
   
@@ -496,7 +478,7 @@ class User {
         username,
       ];
   
-      const res = await client.query(query, values);
+      const res = await pool.query(query, values);
   
       if (res.rowCount === 0) {
         const error = new Error("User not found or not updated");
@@ -524,13 +506,11 @@ class User {
     } catch (err) {
       console.error("Error updating user by username: " + username, err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
   static async updateImageUserByUsername(username, icon, callback) {
-    const client = await pool.connect();
+    
     try {
       const query = `
         UPDATE "User" 
@@ -540,7 +520,7 @@ class User {
       `;
   
       const values = [icon, username];
-      const res = await client.query(query, values);
+      const res = await pool.query(query, values);
   
       if (res.rowCount === 0) {
         const error = new Error("User not found or not updated");
@@ -568,18 +548,16 @@ class User {
     } catch (err) {
       console.error("Error updating image for user by username: " + username, err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
 
   static async deleteUser(UserId, callback) {
-    const client = await pool.connect();
+    
     try {
       const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING "Id_user"';
   
-      const res = await client.query(query, [UserId]);
+      const res = await pool.query(query, [UserId]);
   
       if (res.rowCount === 0) {
         callback(null, false); // User not found or not deleted
@@ -590,8 +568,6 @@ class User {
     } catch (err) {
       console.error("Error deleting user with ID: " + UserId, err);
       callback(err, null);
-    } finally {
-      client.release();
     }
   }
   
