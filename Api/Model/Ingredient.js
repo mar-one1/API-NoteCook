@@ -1,9 +1,9 @@
 const pool  = require("../../data/database");
 
 class IngredientRecipe {
-  constructor(id, ingredients, poidingredient, unite, recipeId) {
+  constructor(id, ingredient, poidingredient, unite, recipeId) {
     this.id = id;
-    this.ingredients = ingredients;
+    this.ingredient = ingredient;
     this.poidingredient = poidingredient;
     this.unite = unite;
     this.recipeId = recipeId;

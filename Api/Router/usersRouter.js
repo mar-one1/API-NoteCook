@@ -108,26 +108,46 @@ router.delete('/delete/:path', (req, res) => {
   });
 });
 
-router.post('/upload/:username', upload.single('image'),async  (req, res) => {
+router.post('/upload/:username', upload.single('image'), async (req, res) => {
   const username = req.params.username;
-  console.log(req.body);
-  console.log(req.file);
-  if (!req.file) {
-      return res.status(400).send('No file uploaded.');
-  }
-  // Process the uploaded file
-  const fileName = req.file.filename;
-  const imageUrl = encodeURIComponent(fileName);
-  console.log(username);
 
-  User.UpdateUserImage(username,imageUrl,(err, validite) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  // If the user doesn't exist, add them to the database
-    res.status(201).json(validite);
-  });
+  console.log('Request body:', req.body);
+  console.log('Uploaded file info:', req.file);
+
+  // Check if a file is uploaded
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
+
+  try {
+    // Get the filename from the uploaded file
+    const fileName = req.file.filename;
+    const imageUrl = encodeURIComponent(fileName); // Encoding filename for safety
+    console.log('Encoded Image URL:', imageUrl);
+
+    // Update the user's image in the database
+    User.updateUserImage(username, imageUrl, (err, updatedImageUrl) => {
+      if (err) {
+        console.error('Error updating user image:', err);
+        return res.status(500).json({ error: 'Failed to update user image.' });
+      }
+
+      if (!updatedImageUrl) {
+        return res.status(404).json({ error: 'User not found or update failed.' });
+      }
+
+      // Respond with success
+      res.status(200).json({
+        message: 'User image updated successfully.',
+        imageUrl: updatedImageUrl,
+      });
+    });
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
 });
+
 
 // Get a user by ID
 router.get('/:id', (req, res) => {
@@ -189,20 +209,26 @@ router.get('/', (req, res) => {
 
 router.put('/image/:username', (req, res) => {
   const username = req.params.username;
-  const {url} =req.body;
-  const imageurl = url;
-  console.log(req.body);
-  console.log(username);
-  User.UpdateUserImage(username,imageurl,(err,path) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Image URL is required.' });
+  }
+
+  console.log('Request body:', req.body);
+  console.log('Username:', username);
+
+  User.updateUserImage(username, url, (err, updatedImageUrl) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: 'An error occurred while updating the image.' });
     }
-    if (!path) {
-      return res.status(406).json({ error: 'User not found or not updated!!' });
+    if (!updatedImageUrl) {
+      return res.status(404).json({ error: 'User not found or not updated!' });
     }
-    res.json(path);
+    res.status(200).json({ message: 'Image updated successfully.', url: updatedImageUrl });
   });
-})
+});
+
 
 // Update a user by ID
 router.put('/:id', validateUser.validateUserUpdate, (req, res) => {

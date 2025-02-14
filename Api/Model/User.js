@@ -208,25 +208,25 @@ class User {
   }
   
 
-  static async updateUserImage(username, imagebyte, callback) {
-    
+  static async updateUserImage(username, imageUrl, callback) {
     try {
-      const query = 'UPDATE "User" SET "Url_image" = $1 WHERE username = $2';
-      const res = await pool.query(query, [imagebyte, username]);
+      const query = 'UPDATE "User" SET "Url_image" = $1 WHERE "username" = $2';
+      const res = await pool.query(query, [imageUrl, username]);
   
       if (res.rowCount === 0) {
-        callback(null, null); // User not found or not updated
+        callback(null, null); // No rows updated, user not found
         return;
       }
   
       // Successfully updated user image
-      callback(null, imagebyte);
-      console.log("Image updated:", imagebyte);
+      callback(null, imageUrl);
+      console.log("Image updated:", imageUrl);
     } catch (err) {
-      console.error("Error updating user image", err);
+      console.error("Error updating user image:", err);
       callback(err, null);
     }
   }
+  
   
 
   static async getUserImage(username, callback) {

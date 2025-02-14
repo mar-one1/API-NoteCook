@@ -10,8 +10,8 @@ CREATE TABLE User (
     Phonenumber_user TEXT,
     Icon_user INTEGER,
     Password_user TEXT,
-    Grade_user INTEGER,
-    Status_user INTEGER,
+    Grade_user TEXT,
+    Status_user TEXT,
     Url_image TEXT,
     CONSTRAINT unique_username UNIQUE (username)
 );
@@ -85,13 +85,10 @@ CREATE TABLE FavoriteUserRecipe (
     FOREIGN KEY (FRK_recipe) REFERENCES Recipe(Id_recipe)
 );
 
-// PR
+
 -- SQLite
 -- Create the User table
-CREATE TABLE "User" (
-    "Id_user"  SERIAL PRIMARY KEY,
-    "username" TEXT,
-    "Firstname_user" TE-- SQLite
+-- SQLite
 -- Create the User table
 CREATE TABLE IF NOT EXISTS "User" (
     "Id_user"  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,8 +100,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "Birthday_user" TEXT,
     "Phonenumber_user" TEXT,
     "Email_user" TEXT,
-    "Status_user" INTEGER,
-    "Grade_user" INTEGER,
+    "Status_user" TEXT,
+    "Grade_user" TEXT,
     "Url_image" TEXT,
     CONSTRAINT unique_username UNIQUE (username)
 );
@@ -176,7 +173,12 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
     "FRK_recipe" INTEGER,
     FOREIGN KEY ("FRK_user") REFERENCES "User"("Id_user"),
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
-);XT,
+)
+// PR
+CREATE TABLE "User" (
+    "Id_user"  SERIAL PRIMARY KEY,
+    "username" TEXT,
+    "Firstname_user"
     "Lastname_user" TEXT,
     "Icon_user" TEXT,
     "password" TEXT,
