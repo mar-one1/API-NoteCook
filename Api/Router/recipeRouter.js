@@ -54,21 +54,27 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
   const id = req.params.id;
   console.log(req.body);
   console.log(req.file);
+  
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
+
   // Process the uploaded file
   const fileName = req.file.filename;
   const imageUrl = encodeURIComponent(fileName);
   console.log(id);
 
-  Recipe.UpdateRecipeImage(id, imageUrl, (err, validite) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    // If the user doesn't exist, add them to the database
-    res.status(201).json(validite);
-  });
+  try {
+    // Call the method to update recipe image
+    await Recipe.updateRecipeImage(id, imageUrl, (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json(result);  // Return success message
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 // Get a recipe by username

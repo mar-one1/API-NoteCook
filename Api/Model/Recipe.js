@@ -240,127 +240,86 @@ class Recipe {
   }
   
   
- // Insert recipe with details
+  // Insert a recipe with all related data in one transaction
 static async insertRecipeWithDetails(recipeData, callback) {
+  const client = await pool.connect();
   try {
-    // Begin transaction
-    await Recipe.beginTransaction(pool);
+    await client.query('BEGIN'); // Start the transaction
 
     const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
 
-    // Insert recipe and retrieve the recipeId
-    const recipeId = await Recipe.insertRecipe(pool, recipe);
-    console.log("Recipe inserted, recipeId:", recipeId); // Ensure valid recipeId
+    // 1. Insert into Recipe table
+    const recipeResult = await client.query(
+      `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
+      VALUES ($1, $2, $3, $4, $5) RETURNING "Id_recipe"`,
+      [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
+    );
+    const recipeId = recipeResult.rows[0].Id_recipe;
 
-    // Insert detail recipe with the correct recipeId
-    const DetailId = await Recipe.insertDetailRecipe(pool, detail_recipe, recipeId);
+    // 2. Insert into DetailRecipe table
+    const detailResult = await client.query(
+      `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING "Id_detail_recipe"`,
+      [
+        detail_recipe.detail,
+        detail_recipe.time,
+        detail_recipe.rate,
+        detail_recipe.level,
+        detail_recipe.calories,
+        recipeId
+      ]
+    );
+    const detailId = detailResult.rows[0].Id_detail_recipe;
 
-    // Insert ingredients if available
+    // 3. Insert ingredients into IngredientRecipe table
     if (Array.isArray(ingredients) && ingredients.length > 0) {
-      await Recipe.insertIngredients(pool, ingredients, DetailId);
+      await Promise.all(
+        ingredients.map((ingredient) =>
+          client.query(
+            `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
+            VALUES ($1, $2, $3, $4)`,
+            [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, detailId]
+          )
+        )
+      );
     }
 
-    // Insert steps only after the recipe has been inserted
+    // 4. Insert steps into StepRecipe table
     if (Array.isArray(steps) && steps.length > 0) {
-      await Recipe.insertSteps(pool, steps, recipeId);
+      await Promise.all(
+        steps.map((step) =>
+          client.query(
+            `INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
+            VALUES ($1, $2, $3, $4)`,
+            [step.detailStep, step.imageStep, step.timeStep, recipeId]
+          )
+        )
+      );
     }
 
-    // Insert reviews if available
+    // 5. Insert reviews into ReviewRecipe table
     if (Array.isArray(reviews) && reviews.length > 0) {
-      await Recipe.insertReviews(pool, reviews, recipeId);
+      await Promise.all(
+        reviews.map((review) =>
+          client.query(
+            `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
+            VALUES ($1, $2, $3)`,
+            [review.detailReview, review.rateReview, recipeId]
+          )
+        )
+      );
     }
 
-    // Commit transaction
-    await Recipe.commitTransaction(pool);
-
+    // Commit the transaction
+    await client.query('COMMIT');
     console.log("Recipe inserted successfully with ID:", recipeId);
     callback(null, recipeId);
   } catch (err) {
-    // Rollback transaction if an error occurs
-    await Recipe.rollbackTransaction(pool);
-    console.error("Error creating recipe:", err);
+    // Rollback the transaction in case of error
+    await client.query('ROLLBACK');
+    console.error("Error inserting recipe:", err);
     callback(err);
-  } finally {
-    await pool.end(); // Close the connection to PostgreSQL
-  }
-}
-
-// Helper function to begin a transaction
-static async beginTransaction(pool) {
-  return pool.query('BEGIN');
-}
-
-// Helper function to commit a transaction
-static async commitTransaction(pool) {
-  return pool.query('COMMIT');
-}
-
-// Helper function to rollback a transaction
-static async rollbackTransaction(pool) {
-  return pool.query('ROLLBACK');
-}
-
-// Insert recipe into Recipe table
-static async insertRecipe(pool, recipe) {
-  const result = await pool.query(
-    `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
-     VALUES ($1, $2, $3, $4, $5) RETURNING "Id_recipe"`,
-    [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
-  );
-  return result.rows[0].Id_recipe; // Return the valid recipeId
-}
-
-// Insert detail recipe into Detail_recipe table
-static async insertDetailRecipe(pool, detail_recipe, recipeId) {
-  const result = await pool.query(
-    `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING "Id_detail_recipe"`,
-    [
-      detail_recipe.detail,
-      detail_recipe.time,
-      detail_recipe.rate,
-      detail_recipe.level,
-      detail_recipe.calories,
-      recipeId
-    ]
-  );
-  return result.rows[0].Id_detail_recipe;
-}
-
-// Insert ingredients into Ingredient table
-static async insertIngredients(pool, ingredients, DetailId) {
-  const promises = ingredients.map((ingredient) =>
-    pool.query(
-      `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
-       VALUES ($1, $2, $3, $4)`,
-      [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, DetailId]
-    )
-  );
-  await Promise.all(promises);
-}
-
-// Insert reviews into Review_recipe table
-static async insertReviews(pool, reviews, recipeId) {
-  const promises = reviews.map((review) =>
-    pool.query(
-      `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
-       VALUES ($1, $2, $3)`,
-      [review.detailReview, review.rateReview, recipeId]
-    )
-  );
-  await Promise.all(promises);
-}
-
-// Insert steps into Step_recipe table
-static async insertSteps(pool, steps, recipeId) {
-  const promises = steps.map((step) =>
-    pool.query(
-      `INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
-       VALUES ($1, $2, $3, $4)`,
-      [step.detailStep, step.imageStep, step.timeStep, recipeId]
-    )
-  );
-  await Promise.all(promises);
+  } 
 }
 
 
@@ -591,53 +550,50 @@ static async insertSteps(pool, steps, recipeId) {
     }
   }
 
-
-  static async updateRecipeImage(unique, imagebyte, callback = () => { }) {
-    try {
-      // Retrieve the current image path from the Recipe table
-      const res = await pool.query(
-        `SELECT "Icon_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
-        [unique]
-      );
-
-      if (res.rows.length === 0) {
-        return callback(new Error("Recipe not found"));
+    static async updateRecipeImage(unique, imagebyte, callback = () => { }) {
+      try {
+        const res = await pool.query(
+          `SELECT "Icon_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+          [unique]
+        );
+        
+        if (res.rows.length === 0) {
+          return callback(new Error("Recipe not found"));
+        }
+  
+        const oldPath = res.rows[0].Icon_recipe;
+        const updateRes = await pool.query(
+          `UPDATE "Recipe" SET "Icon_recipe" = $1 WHERE "unique_key_recipe" = $2`,
+          [imagebyte, unique]
+        );
+  
+        if (updateRes.rowCount === 0) {
+          return callback(null, null); // Recipe not found or not updated
+        }
+  
+        console.log("Old Path: ", oldPath);
+  
+        if (oldPath) {
+          Recipe.deleteimage(oldPath, (err, message) => {
+            if (err) {
+              console.error("Error deleting old image:", err);
+              return callback(err);
+            }
+  
+            console.log(message);
+            callback(null, imagebyte);  // Return the updated image byte data
+          });
+        } else {
+          callback(null, imagebyte);  // No old image to delete, return updated data
+        }
+      } catch (err) {
+        console.error("Error updating recipe image:", err);
+        callback(err);
       }
-
-      const oldPath = res.rows[0].Icon_recipe;
-
-      // Update the Recipe table with the new image byte data
-      const updateRes = await pool.query(
-        `UPDATE "Recipe" SET "Icon_recipe" = $1 WHERE "unique_key_recipe" = $2`,
-        [imagebyte, unique]
-      );
-
-      if (updateRes.rowCount === 0) {
-        return callback(null, null); // Recipe not found or not updated
-      }
-
-      console.log("Old Path: ", oldPath);
-
-      // Delete the old image if it exists
-      if (oldPath) {
-        RecipeService.deleteImage(oldPath, (err, message) => {
-          if (err) {
-            console.error("Error deleting old image:", err);
-            return callback(err);
-          }
-
-          console.log(message);
-          callback(null, imagebyte);  // Return the updated image byte data
-        });
-      } else {
-        callback(null, imagebyte);  // No old image to delete, return updated data
-      }
-    } catch (err) {
-      console.error("Error updating recipe image:", err);
-      callback(err);
     }
-  }
-
+  
+  
+  
   static async getAllRecipes(callback) {
        // Get a pool from the pool
 
@@ -819,11 +775,11 @@ static async insertSteps(pool, steps, recipeId) {
       const recipeId = recipeResult.rows[0].Id_recipe;
   
       // Update Detail_recipe
-      await pool.query(
+      const resutdetail = await pool.query(
         `UPDATE "DetailRecipe"
          SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
              "Level_recipe" = $4, "Calories_recipe" = $5
-         WHERE "FRK_recipe" = $6`,
+         WHERE "FRK_recipe" = $6 RETURNING "Id_detail_recipe"`,
         [
           detail_recipe.detail,
           detail_recipe.time,
@@ -833,9 +789,10 @@ static async insertSteps(pool, steps, recipeId) {
           recipeId,
         ]
       );
+      const detailId = resutdetail.rows[0].Id_detail_recipe;
   
       // Update ingredients
-      await Recipe.updateIngredients(pool, ingredients, recipeId);
+      await Recipe.updateIngredients(pool, ingredients, detailId);
   
       // Update steps
       await Recipe.updateSteps(pool, steps, recipeId);
@@ -856,7 +813,7 @@ static async insertSteps(pool, steps, recipeId) {
     try {
       // Delete existing ingredients
       await pool.query(
-        `DELETE FROM "IngredientRecipe" WHERE "FRK_recipe" = $1`,
+        `DELETE FROM "IngredientRecipe" WHERE "FRK_detail_recipe" = $1`,
         [recipeId]
       );
   
@@ -884,7 +841,41 @@ static async insertSteps(pool, steps, recipeId) {
     }
   }
   
+// Insert ingredients into Ingredient table
+static async insertIngredients(pool, ingredients, detailId) {
+  const promises = ingredients.map((ingredient) =>
+    pool.query(
+      `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
+       VALUES ($1, $2, $3, $4)`,
+      [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, detailId]
+    )
+  );
+  await Promise.all(promises);
+}
 
+// Insert reviews into Review_recipe table
+static async insertReviews(pool, reviews, recipeId) {
+  const promises = reviews.map((review) =>
+    pool.query(
+      `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
+       VALUES ($1, $2, $3)`,
+      [review.detailReview, review.rateReview, recipeId]
+    )
+  );
+  await Promise.all(promises);
+}
+
+// Insert steps into Step_recipe table
+static async insertSteps(pool, steps, recipeId) {
+  const promises = steps.map((step) =>
+    pool.query(
+      `INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
+       VALUES ($1, $2, $3, $4)`,
+      [step.detailStep, step.imageStep, step.timeStep, recipeId]
+    )
+  );
+  await Promise.all(promises);
+}
   static async deleteRecipe(recipeId, callback) {
     
     try {
