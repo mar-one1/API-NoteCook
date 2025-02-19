@@ -185,8 +185,8 @@ CREATE TABLE "User" (
     "Birthday_user" TEXT,
     "Phonenumber_user" TEXT,
     "Email_user" TEXT,
-    "Status_user" INTEGER,
-    "Grade_user" INTEGER,
+    "Status_user" TEXT,
+    "Grade_user" TEXT,
     "Url_image" TEXT,
     CONSTRAINT unique_username UNIQUE (username)
 );
