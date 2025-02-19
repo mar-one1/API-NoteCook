@@ -165,6 +165,9 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
     "FRK_recipe" INTEGER,
     FOREIGN KEY ("FRK_user") REFERENCES "User"("Id_user"),
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
+
+
+
 ) // PR CREATE TABLE "User" (
     "Id_user" SERIAL PRIMARY KEY,
     "username" TEXT,
@@ -211,13 +214,21 @@ CREATE TABLE "ReviewRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
-CREATE TABLE "IngredientRecipe" (
+CREATE TABLE "Ingredients" (
     "Id_ingredient_recipe" SERIAL PRIMARY KEY,
     "Ingredient_recipe" TEXT,
     "PoidIngredient_recipe" REAL,
     "unit" TEXT,
     "FRK_detail_recipe" INTEGER,
     FOREIGN KEY ("FRK_detail_recipe") REFERENCES "DetailRecipe"("Id_detail_recipe") ON DELETE CASCADE
+);
+-- Create the IngredientRecipe table
+CREATE TABLE "IngredientRecipe" (
+    "Id_List_Ingredients_recipe"  SERIAL primary key ,
+    "Frk_Ingredient_recipe" integer,
+    "FRK_recipe" integer,
+    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "Ingredient"("Id_ingredient_recipe") ON DELETE CASCADE,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the StepRecipe table
 CREATE TABLE "StepRecipe" (

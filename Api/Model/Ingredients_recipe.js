@@ -1,27 +1,21 @@
 const pool  = require("../../data/database");
 
 class IngredientRecipe {
-  constructor(id_ingredient_recipe, name, quantity, unit, frk_detail_recipe) {
-    this.id_ingredient_recipe = id_ingredient_recipe;
-    this.name = name;
-    this.quantity = quantity;
-    this.unit = unit;
-    this.frk_detail_recipe = frk_detail_recipe;
+  constructor(id_Ingeredient_recipe, Frk_idRecipe, Frk_idIngredient) {
+    this.id_Ingeredient_recipe = id_Ingeredient_recipe;
+    this.Frk_idRecipe = Frk_idRecipe;
+    this.Frk_idIngredient = Frk_idIngredient;
   }
 
   // Create a new ingredient recipe association
-  static async create(detailRecipeId, name, quantity, unit) {
-    
+  static async create(recipeId, ingredientId) {
     try {
-      const result = await pool.query(
-        'INSERT INTO "IngredientRecipe" ("Id_ingredient_recipe", "Ingredient_recipe", "PoidIgredient_recipe", "unit", "FRK_detail_recipe") VALUES ($1, $2, $3, $4) RETURNING *',
-        [detailRecipeId, name, quantity, unit, frk_detail_recipe]
+      const res = await pool.query(
+        'INSERT INTO "Ingredients" ("Frk_idRecipe", "Frk_idIngredient") VALUES ($1, $2) RETURNING *',
+        [recipeId, ingredientId]
       );
-
-      const row = result.rows[0];
-      return new IngredientRecipe(row.id_ingredient_recipe, row.name, row.quantity, row.unit , row.frk_detail_recipe);
+      return new IngredientRecipe(res.rows[0].id_Ingeredient_recipe, recipeId, ingredientId);
     } catch (err) {
-      console.error('Error creating ingredient recipe association:', err);
       throw err;
     }
   }
@@ -29,46 +23,39 @@ class IngredientRecipe {
   // Retrieve all ingredient recipe associations
   static async getAll() {
     try {
-      const result = await pool.query('SELECT * FROM "IngredientRecipe"');
-      return result.rows.map(
-        row => new IngredientRecipe(row.id_ingredient_recipe, row.name, row.quantity, row.unit, row.frk_detail_recipe)
-      );
+      const res = await pool.query('SELECT * FROM "Ingredients"');
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
     } catch (err) {
-      console.error('Error fetching all ingredient recipe associations:', err);
       throw err;
     }
   }
 
-  // Retrieve all ingredient recipe associations for a recipe detail ID
-  static async getByDetailRecipeId(detailRecipeId) {
-    
+  // Retrieve all ingredient recipe associations for a recipe
+  static async getByRecipeId(recipeId) {
     try {
-      const result = await pool.query(
-        'SELECT * FROM "IngredientRecipe" WHERE "FRK_detail_recipe" = $1',
-        [detailRecipeId]
-      );
-
-      return result.rows.map(
-        row => new IngredientRecipe(row.id_ingredient_recipe, row.name, row.quantity, row.unit, row.frk_detail_recipe)
-      );
+      const res = await pool.query('SELECT * FROM "Ingredients" WHERE "Frk_idRecipe" = $1', [recipeId]);
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
     } catch (err) {
-      console.error('Error fetching ingredient recipes by detail recipe ID:', err);
       throw err;
     }
   }
 
-  // Delete all ingredient recipe associations for a recipe detail ID
-  static async deleteByDetailRecipeId(detailRecipeId) {
-    
+  // Retrieve all ingredient recipe associations for a specific ingredient ID
+  static async getByIngredientId(ingredientId) {
     try {
-      const result = await pool.query(
-        'DELETE FROM "IngredientRecipe" WHERE "FRK_detail_recipe" = $1',
-        [detailRecipeId]
-      );
-
-      return result.rowCount; // Returns the number of deleted rows
+      const res = await pool.query('SELECT * FROM "Ingredients" WHERE "Frk_idIngredient" = $1', [ingredientId]);
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
     } catch (err) {
-      console.error('Error deleting ingredient recipes by detail recipe ID:', err);
+      throw err;
+    }
+  }
+
+  // Delete all ingredient recipe associations for a recipe
+  static async deleteByRecipeId(recipeId) {
+    try {
+      await pool.query('DELETE FROM "Ingredients" WHERE "Frk_idRecipe" = $1', [recipeId]);
+      return { message: "Deleted successfully" };
+    } catch (err) {
       throw err;
     }
   }
