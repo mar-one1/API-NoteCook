@@ -225,7 +225,7 @@ router.put('/image/:username', (req, res) => {
     if (!updatedImageUrl) {
       return res.status(404).json({ error: 'User not found or not updated!' });
     }
-    res.status(200).json({ message: 'Image updated successfully.', url: updatedImageUrl });
+    res.status(200).json(updatedImageUrl);
   });
 });
 

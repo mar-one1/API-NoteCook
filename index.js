@@ -33,7 +33,7 @@ const users = {};
 
 // PostgreSQL Connection Setup
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Use environment variable for your database connection string
+  connectionString: process.env.POSTGRES_URL_LOCAL, // Use environment variable for your database connection string
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // Only enable SSL in production
 });
 
