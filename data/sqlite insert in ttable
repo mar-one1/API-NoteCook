@@ -33,7 +33,6 @@ VALUES
   ('Mix mascarpone and sugar', 2, 15, 5, 250, 5),
   -- Add more rows with data for other recipes
   ;
-Inserting Data into Ingredients_Recipe Table (TABLE_INGREDIENT_RECIPE):
 
 
 INSERT INTO Ingredients_Recipe (Ingredient, Weight, Detail_Recipe_ID)
@@ -45,7 +44,6 @@ VALUES
   ('Mascarpone Cheese', '250g', 5),
   -- Add more rows with data for other recipes
   ;
-Inserting Data into Step_Recipe Table (TABLE_STEP_RECIPE):
 
 
 INSERT INTO Step_Recipe (Detail, Image, Time, Recipe_ID)
@@ -58,9 +56,6 @@ VALUES
   -- Add more rows with data for other recipes
   ;
 
-Inserting Data into Review_Recipe Table (TABLE_REVIEW_RECIPE):
-
-
 INSERT INTO Review_Recipe (Review, Rate, Detail_Recipe_ID)
 VALUES
   ('Delicious! Will make it again.', 5, 1),
@@ -72,14 +67,21 @@ VALUES
   ;
 
 //pg 
-INSERT INTO "Recipe" ("Icon_recipe", "Fav_recipe", "Nom_recipe", "Frk_user", "Frk_categorie")
+
+INSERT INTO "User" ("username", "Firstname_user", "Lastname_user", "Icon_user", "password", "Birthday_user", "Phonenumber_user", "Email_user", "Status_user", "Grade_user", "Url_image")
+ VALUES
+('john_doe', 'John', 'Doe', 'icon1.png', 'hashedpassword123', '1990-05-15', '1234567890', 'john.doe@example.com', 'active', 'A', 'https://example.com/john.png'),
+('jane_smith', 'Jane', 'Smith', 'icon2.png', 'hashedpassword456', '1992-08-22', '0987654321', 'jane.smith@example.com', 'active', 'B', 'https://example.com/jane.png'),
+('michael_lee', 'Michael', 'Lee', 'icon3.png', 'hashedpassword789', '1985-12-10', '1112223333', 'michael.lee@example.com', 'inactive', 'C', 'https://example.com/michael.png'),
+('emma_watson', 'Emma', 'Watson', 'icon4.png', 'hashedpassword321', '1998-07-05', '4445556666', 'emma.watson@example.com', 'active', 'A', 'https://example.com/emma.png');
+
+INSERT INTO "Recipe" ("Icon_recipe", "Fav_recipe", "Nom_Recipe", "Frk_user", "Frk_categorie")
 VALUES
   (123, 1, 'Spaghetti Bolognese', 2, 5),
   (456, 0, 'Chocolate Cake', 3, 4),
   (789, 1, 'Chicken Curry', 1, 7),
   (321, 0, 'Caesar Salad', 2, 2),
   (654, 1, 'Tiramisu', 3, 4),
-  -- Add 95 more rows with random data
   (111, 1, 'Lasagna', 4, 5),
   (222, 0, 'Apple Pie', 2, 3),
   (333, 1, 'Beef Stroganoff', 1, 5),
@@ -100,17 +102,14 @@ VALUES
   ('Mix mascarpone and sugar', 2, 15, 5, 250, 5)
 
 
-
-INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe","unit", "FRK_detail_recipe")
+INSERT INTO "Ingredients" ("Ingredient_recipe", "PoidIngredient_recipe","unit", "FRK_detail_recipe")
 VALUES
   ('Pasta', '200','g', 1),
   ('Olive Oil', '2','tbsp', 2),
   ('Chicken Thighs', '400','g', 3),
   ('Lettuce', '150','g', 4),
   ('Mascarpone Cheese', '250','g', 5)
-  -- Add more rows with data for other recipes
   
-
 
 INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
 VALUES
@@ -122,15 +121,11 @@ VALUES
   -- Add more rows with data for other recipes
   
 
-
-
-
 INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
 VALUES
   ('Delicious! Will make it again.', 5, 1),
   ('Perfect cake, my family loved it.', 5, 2),
   ('The curry was too spicy for me.', 3, 3),
   ('Great salad recipe!', 4, 4),
-  ('Superb dessert, a must-try.', 5, 5),
+  ('Superb dessert, a must-try.', 5, 5)
   -- Add more rows with data for other recipes
-  
