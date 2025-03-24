@@ -214,7 +214,7 @@ CREATE TABLE "ReviewRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
-CREATE TABLE "Ingredients" (
+CREATE TABLE "IngredientRecipe" (
     "Id_ingredient_recipe" SERIAL PRIMARY KEY,
     "Ingredient_recipe" TEXT,
     "PoidIngredient_recipe" REAL,
@@ -223,7 +223,7 @@ CREATE TABLE "Ingredients" (
     FOREIGN KEY ("FRK_detail_recipe") REFERENCES "DetailRecipe"("Id_detail_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
-CREATE TABLE "IngredientRecipe" (
+CREATE TABLE "Ingredients" (
     "Id_List_Ingredients_recipe"  SERIAL primary key ,
     "Frk_Ingredient_recipe" integer,
     "FRK_recipe" integer,
