@@ -85,6 +85,15 @@ CREATE TABLE FavoriteUserRecipe (
     FOREIGN KEY (FRK_user) REFERENCES User(Id_user),
     FOREIGN KEY (FRK_recipe) REFERENCES Recipe(Id_recipe)
 );
+
+-- SQL script to create the Categorie_recipe table
+CREATE TABLE Categorie_recipe (
+    Id_Categorie_recipe SERIAL PRIMARY KEY,
+    Icon_Categorie_recipe BYTEA,
+    Icon_Path_Categorie_recipe TEXT,
+    Detail_Categorie_recipe TEXT
+);
+
 -- SQLite
 -- Create the User table
 -- SQLite
@@ -261,4 +270,11 @@ CREATE TABLE IF NOT EXISTS "messages" (
     "receiverId" INTEGER NOT NULL,
     "message" TEXT NOT NULL,
     "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE "Categorie_recipe" (
+    "Id_Categorie_recipe" SERIAL PRIMARY KEY,
+    "Icon_Categorie_recipe" BYTEA,
+    "Icon_Path_Categorie_recipe" TEXT,
+    "Detail_Categorie_recipe" TEXT
 );
