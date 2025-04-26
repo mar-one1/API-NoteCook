@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 // Secret key used to sign and verify tokens
-const { User } = require('../Model/User'); // Adjust path as needed
+const User = require('../Model/User');
 const secretKey = process.env.JWT_SECRET;
 
 function verifyToken(req, res, next) {
@@ -10,7 +10,7 @@ function verifyToken(req, res, next) {
     return res.status(403).json({ message: 'Authorization token not provided' });
   }
 
-  const token = authToken.replace('Bearer ', '');
+  const token = authToken.replace('Bearer ', '');``
 
   jwt.verify(token, secretKey, (err, decoded) => {
     let userInfo;
