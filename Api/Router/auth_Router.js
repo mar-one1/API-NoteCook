@@ -5,7 +5,8 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
 const user = require("../Model/User");
-
+// Secret key for JWT token (change this to a secure value in production)
+const secretKey = process.env.JWT_SECRET;
 const authRouter = express.Router();
 
 authRouter.use(bodyParser.json());
@@ -18,8 +19,7 @@ authRouter.use(bodyParser.json());
 */
 // Fetch all users from the database
 
-// Secret key for JWT token (change this to a secure value in production)
-const secretKey = "123456";
+
 
 // Login route
 authRouter.post("/login", (req, res) => {
@@ -51,7 +51,7 @@ authRouter.post("/login", (req, res) => {
         if (err || !result) {
           return res
             .status(401)
-            .json({ message: "Authentication failed compare" });
+            .json({ error: "Authentication failed compare" });
         }
 
         console.log(user);
