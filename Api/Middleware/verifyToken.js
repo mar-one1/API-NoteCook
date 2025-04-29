@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-
 // Secret key used to sign and verify tokens
-const secretKey = '123456';
+const User = require('../Model/User');
+const secretKey = process.env.JWT_SECRET;
 
 function verifyToken(req, res, next) {
   const authToken = req.headers.authorization;
@@ -10,42 +10,54 @@ function verifyToken(req, res, next) {
     return res.status(403).json({ message: 'Authorization token not provided' });
   }
 
-  const token = authToken.replace('Bearer ', '');
+  const token = authToken.replace('Bearer ', '');``
 
   jwt.verify(token, secretKey, (err, decoded) => {
+    let userInfo;
+
     if (err) {
-      // Handle expired token
       if (err.name === 'TokenExpiredError') {
-        const expiredDecoded = jwt.decode(token); // Decode without verification
+        const expiredDecoded = jwt.decode(token);
+
         if (!expiredDecoded) {
           return res.status(400).json({ message: 'Token is invalid and cannot be refreshed' });
         }
 
-        // Assume expiredDecoded contains the necessary information to issue a new token
+        userInfo = expiredDecoded;
+
         const newAccessToken = jwt.sign(
-          { id: expiredDecoded.id, username: expiredDecoded.username },
+          { id: userInfo.id, username: userInfo.username },
           secretKey,
           { expiresIn: '1h' }
         );
 
-        // Optionally attach the new token to the headers or directly to the request object
         req.headers.authorization = `Bearer ${newAccessToken}`;
-        req.newAccessToken = newAccessToken; // For the endpoint to send back if needed
-        // Set a flag to indicate token was refreshed
+        req.newAccessToken = newAccessToken;
         req.tokenRefreshed = true;
-        // Log or handle the new token as needed, then continue to the next middleware or route handler
-        next();
+        req.user = userInfo;
       } else {
-        // Handle other token verification errors
         return res.status(401).json({ message: 'Token is invalid' });
       }
     } else {
-      // Token is valid, attach decoded user to request and proceed
+      userInfo = decoded;
       req.user = decoded;
-      next();
     }
+
+    // Check if the user exists in the database
+    User.getUserByUsername(userInfo.username, (err, user) => {
+      if (err) {
+        console.error('Database error while verifying user:', err);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+
+      if (!user) {
+        return res.status(404).json({ message: 'User associated with this token does not exist' });
+      }
+
+      req.user = user; // Optionally attach the full user object
+      next();
+    });
   });
 }
-
 
 module.exports = verifyToken;
