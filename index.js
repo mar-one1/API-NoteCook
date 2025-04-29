@@ -10,6 +10,8 @@ app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
 const messageModel = require('./Api/Model/chat'); // Replace with your actual message model
 const cors = require('cors');
+const dotenv = require('dotenv'); // Load environment variables from .env file
+dotenv.config(); // Ensure the environment variables are loaded
 
 
 const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
