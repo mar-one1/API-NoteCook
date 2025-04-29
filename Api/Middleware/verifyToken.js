@@ -1,13 +1,14 @@
 const jwt = require('jsonwebtoken');
 // Secret key used to sign and verify tokens
 const User = require('../Model/User');
+const { Error } = require('sequelize');
 const secretKey = process.env.JWT_SECRET;
 
 function verifyToken(req, res, next) {
   const authToken = req.headers.authorization;
 
   if (!authToken) {
-    return res.status(403).json({ message: 'Authorization token not provided' });
+    return res.status(403).json({ error: 'Authorization token not provided' });
   }
 
   const token = authToken.replace('Bearer ', '');``
@@ -20,7 +21,7 @@ function verifyToken(req, res, next) {
         const expiredDecoded = jwt.decode(token);
 
         if (!expiredDecoded) {
-          return res.status(400).json({ message: 'Token is invalid and cannot be refreshed' });
+          return res.status(400).json({ error: 'Token is invalid and cannot be refreshed' });
         }
 
         userInfo = expiredDecoded;
@@ -36,7 +37,7 @@ function verifyToken(req, res, next) {
         req.tokenRefreshed = true;
         req.user = userInfo;
       } else {
-        return res.status(401).json({ message: 'Token is invalid' });
+        return res.status(401).json({ error: 'Token is invalid' });
       }
     } else {
       userInfo = decoded;
@@ -47,11 +48,11 @@ function verifyToken(req, res, next) {
     User.getUserByUsername(userInfo.username, (err, user) => {
       if (err) {
         console.error('Database error while verifying user:', err);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
       }
 
       if (!user) {
-        return res.status(404).json({ message: 'User associated with this token does not exist' });
+        return res.status(401).json({ error: 'User associated with this token does not exist' });
       }
 
       req.user = user; // Optionally attach the full user object
