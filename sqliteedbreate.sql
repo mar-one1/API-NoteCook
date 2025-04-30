@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS "Recipe" (
     FOREIGN KEY ("Frk_user") REFERENCES "User" ("Id_user") ON DELETE CASCADE
 );
 -- Create the DetailRecipe table
-CREATE TABLE IF NOT EXISTS "DetailRecipe" (
+CREATE TABLE IF NOT EXISTS "Detail_recipe" (
     "Id_detail_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Dt_recipe" TEXT,
     "Dt_recipe_time" TEXT,
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS "DetailRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the ReviewRecipe table
-CREATE TABLE IF NOT EXISTS "ReviewRecipe" (
+CREATE TABLE IF NOT EXISTS "Review_recipe" (
     "Id_review_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Detail_review_recipe" TEXT,
     "Rate_review_recipe" INTEGER,
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS "ReviewRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
-CREATE TABLE IF NOT EXISTS "IngredientRecipe" (
+CREATE TABLE IF NOT EXISTS "ingredient_recipe" (
     "Id_ingredient_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Ingredient_recipe" TEXT,
     "PoidIngredient_recipe" REAL,
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS "IngredientRecipe" (
     FOREIGN KEY ("FRK_detail_recipe") REFERENCES "DetailRecipe"("Id_detail_recipe") ON DELETE CASCADE
 );
 -- Create the StepRecipe table
-CREATE TABLE IF NOT EXISTS "StepRecipe" (
+CREATE TABLE IF NOT EXISTS "Step_recipe" (
     "Id_step_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Detail_step_recipe" TEXT,
     "Image_step_recipe" TEXT,
@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS "Categorie_recipe" (
     "Detail_Categorie_recipe" TEXT
 );
 
+/*
 --sql
 -- Insert 100 rows into the Recipe table
 INSERT INTO Recipe (Icon, Favorite, Name, User_ID, Category_ID)
@@ -246,5 +247,5 @@ VALUES
   -- Add more rows with data for other recipes
   ;
 
-
+*/
 
