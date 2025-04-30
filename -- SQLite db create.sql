@@ -163,3 +163,70 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
 );
 
+
+--sql
+-- Insert 100 rows into the Recipe table
+INSERT INTO Recipe (Icon, Favorite, Name, User_ID, Category_ID)
+VALUES
+  (123, 1, 'Spaghetti Bolognese', 2, 5),
+  (456, 0, 'Chocolate Cake', 3, 4),
+  (789, 1, 'Chicken Curry', 1, 7),
+  (321, 0, 'Caesar Salad', 2, 2),
+  (654, 1, 'Tiramisu', 3, 4),
+  -- Add 95 more rows with random data
+  (111, 1, 'Lasagna', 4, 5),
+  (222, 0, 'Apple Pie', 2, 3),
+  (333, 1, 'Beef Stroganoff', 1, 5),
+  (444, 0, 'Greek Salad', 3, 2),
+  (555, 1, 'Mango Sorbet', 4, 4),
+  (666, 1, 'Chicken Alfredo', 1, 6),
+  (777, 0, 'Strawberry Shortcake', 2, 3),
+  (888, 1, 'Tomato Soup', 3, 7),
+  (999, 0, 'Cheeseburger', 4, 1),
+  (1010, 1, 'Pasta Primavera', 1, 5),
+  -- Continue with more rows...
+  -- (You can generate random data for the remaining rows.)
+  -- ...
+  ;
+
+  INSERT INTO Detail_Recipe (Detail, Level, Time, Rate, Calories, Recipe_ID)
+VALUES
+  ('Cook pasta until al dente', 2, 20, 4, 300, 1),
+  ('Preheat oven to 350°F', 1, 10, 5, 150, 2),
+  ('Simmer chicken in sauce', 3, 30, 4, 400, 3),
+  ('Toss lettuce with dressing', 1, 5, 4, 100, 4),
+  ('Mix mascarpone and sugar', 2, 15, 5, 250, 5),
+  -- Add more rows with data for other recipes
+  ;
+
+
+INSERT INTO Ingredients_Recipe (Ingredient, Weight, Detail_Recipe_ID)
+VALUES
+  ('Pasta', '200g', 1),
+  ('Olive Oil', '2 tbsp', 2),
+  ('Chicken Thighs', '400g', 3),
+  ('Lettuce', '150g', 4),
+  ('Mascarpone Cheese', '250g', 5),
+  -- Add more rows with data for other recipes
+  ;
+
+
+INSERT INTO Step_Recipe (Detail, Image, Time, Recipe_ID)
+VALUES
+  ('Boil water for pasta', '123', '5 min', 1),
+  ('Grease baking pan', '456', '3 min', 2),
+  ('Stir in tomato sauce', '789', '8 min', 3),
+  ('Toss lettuce with dressing', '321', '5 min', 4),
+  ('Layer cheese mixture and ladyfingers', '654', '10 min', 5),
+  -- Add more rows with data for other recipes
+  ;
+
+INSERT INTO Review_Recipe (Review, Rate, Detail_Recipe_ID)
+VALUES
+  ('Delicious! Will make it again.', 5, 1),
+  ('Perfect cake, my family loved it.', 5, 2),
+  ('The curry was too spicy for me.', 3, 3),
+  ('Great salad recipe!', 4, 4),
+  ('Superb dessert, a must-try.', 5, 5),
+  -- Add more rows with data for other recipes
+  ;
