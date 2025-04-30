@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS "Review_recipe" (
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
-CREATE TABLE IF NOT EXISTS "ingredient_recipe" (
+CREATE TABLE IF NOT EXISTS "ingredients_recipe" (
     "Id_ingredient_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Ingredient_recipe" TEXT,
     "PoidIngredient_recipe" REAL,

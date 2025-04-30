@@ -66,7 +66,7 @@ router.post('/', validateUser.validateUserRegistration, async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
 
   // Create the user in the database
@@ -223,7 +223,7 @@ router.put('/:id', validateUser.validateUserUpdate, (req, res) => {
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
-     return res.status(400).json({ errors: errors.array() });
+     return res.status(400).json({ error: errors.array() });
    }
   User.updateUser(userId,username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
     if (err) {
@@ -255,7 +255,7 @@ router.put('/filtre/:username',  validateUser.validateUserUpdate ,async (req, re
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
-     return res.status(400).json({ errors: errors.array() });
+     return res.status(400).json({ error: errors.array() });
    }
   User.updateUserByUsername(username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
     if (err) {
@@ -276,7 +276,7 @@ router.delete('/:id', validateUser.validateUserDelete, (req, res) => {
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
-     return res.status(400).json({ errors: errors.array() });
+     return res.status(400).json({ error: errors.array() });
    }
   User.deleteUser(userId, (err, deleted) => {
     if (err) {
