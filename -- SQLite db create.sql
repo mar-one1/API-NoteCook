@@ -162,7 +162,22 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
     FOREIGN KEY ("FRK_user") REFERENCES "User"("Id_user"),
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe")
 );
+  -- Create the message table
+CREATE TABLE IF NOT EXISTS "messages" (
+    "id" INTEGER PRIMARY KEY,
+    "recipeId" INTEGER NOT NULL,
+    "senderId" INTEGER NOT NULL,
+    "receiverId" INTEGER NOT NULL,
+    "message" TEXT NOT NULL,
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+CREATE TABLE IF NOT EXISTS "Categorie_recipe" (
+    "Id_Categorie_recipe" INTEGER PRIMARY KEY,
+    "Icon_Categorie_recipe" TEXT,
+    "Icon_Path_Categorie_recipe" TEXT,
+    "Detail_Categorie_recipe" TEXT
+);
 
 --sql
 -- Insert 100 rows into the Recipe table
@@ -230,3 +245,6 @@ VALUES
   ('Superb dessert, a must-try.', 5, 5),
   -- Add more rows with data for other recipes
   ;
+
+
+
