@@ -36,7 +36,7 @@ function verifyToken(req, res, next) {
         req.tokenRefreshed = true;
         req.user = userInfo;
       } else {
-        return res.status(401).json({ message: 'Token is invalid' });
+        return res.status(401).json({ error: 'Token is invalid' });
       }
     } else {
       userInfo = decoded;
