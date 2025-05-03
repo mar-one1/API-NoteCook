@@ -28,8 +28,9 @@ const stepRecipeRouter = require('./Api/Router/step_recipeRouter');
 const reviewRecipeRouter = require('./Api/Router/review_recipeRouter');
 const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
-const recipeModelRouter = require('./Api/Repo/recipeModelRouter'); 
+const recipeModelRouter = require('./Api/Repo/recipeModelRouter');
 const categoryModelRouter = require('./Api/Router/category_Router');
+
 
 app.delete('/cleanup-images', async (req, res) => {
   try {
@@ -94,12 +95,12 @@ io.use((socket, next) => {
 
 
 io.on('connection', (socket) => {
-  console.log(socket.id+': user connected');
+  console.log(socket.id + ': user connected');
 
   // Handle user registration with user ID
   socket.on('register', (userId) => {
-      users[userId] = socket.id;
-      console.log(`User ${userId} registered with socket ID ${socket.id}`);
+    users[userId] = socket.id;
+    console.log(`User ${userId} registered with socket ID ${socket.id}`);
   });
 
   // Handle chat message event
@@ -108,39 +109,39 @@ io.on('connection', (socket) => {
 
     // Save message to the database
     messageModel.saveMessage(data, (err, savedMessage) => {
-        if (err) {
-            console.error('Error saving message', err);
-        } else {
-            console.log('Message saved:', savedMessage);
+      if (err) {
+        console.error('Error saving message', err);
+      } else {
+        console.log('Message saved:', savedMessage);
 
-            // Emit message to the receiver if they are connected
-            const receiverSocketId = users[data.receiverId];
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit('chat message', {
-                    recipeId: data.recipeId,
-                    senderId: data.senderId,
-                    receiverId: data.receiverId,
-                    message: data.message,
-                    timestamp: savedMessage.timestamp
-                });
-            } else {
-                console.log(`User ${data.receiverId} is not connected`);
-            }
+        // Emit message to the receiver if they are connected
+        const receiverSocketId = users[data.receiverId];
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit('chat message', {
+            recipeId: data.recipeId,
+            senderId: data.senderId,
+            receiverId: data.receiverId,
+            message: data.message,
+            timestamp: savedMessage.timestamp
+          });
+        } else {
+          console.log(`User ${data.receiverId} is not connected`);
         }
+      }
     });
-});
+  });
 
   // Handle disconnect event
   socket.on('disconnect', () => {
-      console.log('A user disconnected');
-      // Remove user from the users object
-      for (const userId in users) {
-          if (users[userId] === socket.id) {
-              delete users[userId];
-              console.log(`User ${userId} removed from users object`);
-              break;
-          }
+    console.log('A user disconnected');
+    // Remove user from the users object
+    for (const userId in users) {
+      if (users[userId] === socket.id) {
+        delete users[userId];
+        console.log(`User ${userId} removed from users object`);
+        break;
       }
+    }
   });
 });
 
@@ -148,12 +149,13 @@ io.on('connection', (socket) => {
 app.get('/isUserConnected/:userId', (req, res) => {
   const userId = req.params.userId;
   if (users[userId]) {
-      res.json({ connected: true });
+    res.json({ connected: true });
   } else {
-      res.json({ connected: false });
-  } 
+    res.json({ connected: false });
+  }
 });
-
+const path = require('path');
+const fs = require('fs');
 db.serialize(() => {
   db.run('PRAGMA foreign_keys = ON'); // Enable foreign key support (optional)
 
@@ -163,7 +165,18 @@ db.serialize(() => {
     } else {
       console.log('Connected to the database.');
 
-      // You can perform your database operations here
+      // Initialize SQLite database
+      // Read and run schema.sql
+      const schemaPath = path.join(__dirname, './sqliteedbreate.sql');
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+
+      db.exec(schema, (err) => {
+        if (err) {
+          console.error('Error executing schema:', err.message);
+        } else {
+          console.log('Database schema created or already exists.');
+        }
+      });
     }
   });
 });
@@ -172,7 +185,7 @@ app.use(cors({
   origin: '*', // Allow all origins for testing
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'token']
-}));  
+}));
 
 
 // Connect to your MongoDB database
