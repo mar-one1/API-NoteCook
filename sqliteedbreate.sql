@@ -103,12 +103,13 @@ CREATE TABLE IF NOT EXISTS "User" (
 -- Create the Recipe table
 CREATE TABLE IF NOT EXISTS "Recipe" (
     "Id_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "Icon_recipe" INTEGER,
+    "Icon_recipe" TEXT,
     "Fav_recipe" INTEGER,
-    "Nom_recipe" TEXT NOT NULL,
+    "Nom_Recipe" TEXT NOT NULL,
     "unique_key_recipe" TEXT,
     "Frk_user" INTEGER,
     "Frk_categorie" INTEGER,
+    FOREIGN KEY ("Frk_categorie") REFERENCES "Categorie_recipe" ("Id_Categorie_recipe") ON DELETE CASCADE
     FOREIGN KEY ("Frk_user") REFERENCES "User" ("Id_user") ON DELETE CASCADE
 );
 -- Create the DetailRecipe table
@@ -126,18 +127,27 @@ CREATE TABLE IF NOT EXISTS "Detail_recipe" (
 CREATE TABLE IF NOT EXISTS "Review_recipe" (
     "Id_review_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Detail_review_recipe" TEXT,
-    "Rate_review_recipe" INTEGER,
+    "Rate_review_recipe" FLOAT,
     "FRK_recipe" INTEGER,
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
+
 -- Create the IngredientRecipe table
 CREATE TABLE IF NOT EXISTS "ingredients_recipe" (
+    "Id_List_Ingredients_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "Frk_Ingredient_recipe" INTEGER,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_ingredient_recipe") ON DELETE CASCADE,
+    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "Ingredient"("Id_detail_recipe") ON DELETE CASCADE
+);
+-- Create the IngredientRecipe table
+CREATE TABLE IF NOT EXISTS "Ingredient" (
     "Id_ingredient_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Ingredient_recipe" TEXT,
     "PoidIngredient_recipe" REAL,
-    "unit" TEXT,
-    "FRK_detail_recipe" INTEGER,
-    FOREIGN KEY ("FRK_detail_recipe") REFERENCES "DetailRecipe"("Id_detail_recipe") ON DELETE CASCADE
+    "Unite" TEXT,
+    "FRK_recipe" INTEGER,
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Detail_recipe"("Id_detail_recipe") ON DELETE CASCADE
 );
 -- Create the StepRecipe table
 CREATE TABLE IF NOT EXISTS "Step_recipe" (
@@ -156,7 +166,7 @@ CREATE TABLE IF NOT EXISTS "Produit" (
 );
 -- Create the FavoriteUserRecipe table
 CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
-    "favRecipe_id" INTEGER PRIMARY KEY,
+    "favRecipe_id" INTEGER PRIMARY KEY AUTOINCREMENT,
     "FRK_user" INTEGER,
     "FRK_recipe" INTEGER,
     FOREIGN KEY ("FRK_user") REFERENCES "User"("Id_user"),
@@ -164,7 +174,7 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
 );
   -- Create the message table
 CREATE TABLE IF NOT EXISTS "messages" (
-    "id" INTEGER PRIMARY KEY,
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
     "recipeId" INTEGER NOT NULL,
     "senderId" INTEGER NOT NULL,
     "receiverId" INTEGER NOT NULL,
@@ -173,7 +183,7 @@ CREATE TABLE IF NOT EXISTS "messages" (
 );
 
 CREATE TABLE IF NOT EXISTS "Categorie_recipe" (
-    "Id_Categorie_recipe" INTEGER PRIMARY KEY,
+    "Id_Categorie_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Icon_Categorie_recipe" TEXT,
     "Icon_Path_Categorie_recipe" TEXT,
     "Detail_Categorie_recipe" TEXT
