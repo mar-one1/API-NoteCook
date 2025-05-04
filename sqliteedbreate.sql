@@ -137,8 +137,8 @@ CREATE TABLE IF NOT EXISTS "ingredients_recipe" (
     "Id_List_Ingredients_recipe" INTEGER PRIMARY KEY AUTOINCREMENT,
     "Frk_Ingredient_recipe" INTEGER,
     "FRK_recipe" INTEGER,
-    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_ingredient_recipe") ON DELETE CASCADE,
-    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "Ingredient"("Id_detail_recipe") ON DELETE CASCADE
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE,
+    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "Ingredient"("Id_ingredient_recipe") ON DELETE CASCADE
 );
 -- Create the IngredientRecipe table
 CREATE TABLE IF NOT EXISTS "Ingredient" (
