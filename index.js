@@ -125,7 +125,7 @@ io.on('connection', (socket) => {
             timestamp: savedMessage.timestamp
           });
         } else {
-          console.log(`User ${data.receiverId} is not connected`);
+          console.log(`User ${data.receiverId} is not connected `);
         }
       }
     });
