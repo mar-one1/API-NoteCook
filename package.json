@@ -2,20 +2,22 @@
   "name": "prj_api",
   "version": "1.0.0",
   "description": "API for managing project resources",
+  "homepage": "https://github.com/mar-one1/API-21.11.2023#readme",
+  "bugs": {
+    "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mar-one1/API-21.11.2023.git"
+  },
+  "license": "ISC",
+  "author": "moimeme",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "serve": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "moimeme",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mar-one1/API-21.11.2023.git"
-  },
-  "bugs": {
-    "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
