@@ -12,7 +12,7 @@ class ReviewRecipe {
   static createReviewRecipe(detailReview, rateReview, recipeId, callback) {
     const db = new sqlite3.Database('DB_Notebook.db');
     db.run(
-      'INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)',
+      'INSERT INTO Review_recipe (Detail_review_recipe, Rate_review_recipe, FRK_recipe) VALUES (?, ?, ?)',
       [detailReview, rateReview, recipeId],
       function (err) {
         if (err) {
@@ -82,7 +82,7 @@ class ReviewRecipe {
 static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
   const db = new sqlite3.Database('DB_Notebook.db');
   db.run(
-    'UPDATE Review_recipe SET Detail_Review_recipe = ?, Rate_Review_recipe = ?, FRK_recipe = ? WHERE Id_Review_recipe = ?',
+    'UPDATE Review_recipe SET Detail_review_recipe = ?, Rate_review_recipe = ?, FRK_recipe = ? WHERE Id_review_recipe = ?',
     [detailReview, rateReview, recipeId, reviewId],
     function (err) {
       if (err) {
@@ -108,7 +108,7 @@ static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback
 static deleteReviewRecipe(reviewId, callback) {
   const db = new sqlite3.Database('DB_Notebook.db');
   db.run(
-    'DELETE FROM Review_recipe WHERE Id_Review_recipe = ?',
+    'DELETE FROM Review_recipe WHERE Id_review_recipe = ?',
     [reviewId],
     function (err) {
       if (err) {

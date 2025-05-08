@@ -117,11 +117,11 @@ class Recipe {
                     Review_recipe.*,
                     FavoriteUserRecipe.*
                 FROM Recipe
-                LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-                LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-                LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-                LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
-                LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = FavoriteUserRecipe.Frk_recipe
+                LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
+                LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
+                LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
+                LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
+                LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = FavoriteUserRecipe.FRK_recipe
                 WHERE Recipe.Frk_user = ?
             `;
 
@@ -176,17 +176,17 @@ class Recipe {
             );
             entry.reviews.add(
               JSON.stringify({
-                id: row.Id_Review_recipe,
-                detailReview: row.Detail_Review_recipe,
-                rateReview: row.Rate_Review_recipe,
+                id: row.Id_review_recipe,
+                detailReview: row.Detail_review_recipe,
+                rateReview: row.Rate_review_recipe,
               })
             );
             entry.steps.add(
               JSON.stringify({
-                id: row.Id_Step_recipe,
-                detailStep: row.Detail_Step_recipe,
-                imageStep: row.Image_Step_recipe,
-                timeStep: row.Time_Step_recipe,
+                id: row.Id_step_recipe,
+                detailStep: row.Detail_step_recipe,
+                imageStep: row.Image_step_recipe,
+                timeStep: row.Time_step_recipe,
               })
             );
             entry.favs.add(
@@ -326,7 +326,7 @@ class Recipe {
   static insertReviews(db, reviews, recipeId, callback) {
     try {
       const insertReview = db.prepare(
-        `INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)`
+        `INSERT INTO Review_recipe (Detail_review_recipe, Rate_review_recipe, FRK_recipe) VALUES (?, ?, ?)`
       );
       reviews.forEach((review) => {
         insertReview.run(
@@ -351,7 +351,7 @@ class Recipe {
   static insertSteps(db, steps, recipeId, callback) {
     try {
       const insertStep = db.prepare(
-        `INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
+        `INSERT INTO Step_recipe (Detail_step_recipe, Image_step_recipe, Time_step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
       );
       steps.forEach((step) => {
         insertStep.run(
@@ -385,10 +385,10 @@ class Recipe {
       Step_recipe.*, 
       Review_recipe.*
     FROM Recipe
-    LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-    LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-    LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-    LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe`;
+    LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
+    LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
+    LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
+    LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe`;
 
       let params = [];
       let whereClauseAdded = false;
@@ -399,8 +399,8 @@ class Recipe {
       Recipe.Nom_Recipe LIKE ? OR
       Detail_recipe.Dt_recipe LIKE ? OR
       Ingredient.Ingredient_recipe LIKE ? OR
-      Step_recipe.Detail_Step_recipe LIKE ? OR
-      Review_recipe.Detail_Review_recipe LIKE ?
+      Step_recipe.Detail_step_recipe LIKE ? OR
+      Review_recipe.Detail_review_recipe LIKE ?
     )`;
 
         // Add searchText parameters
@@ -465,11 +465,11 @@ class Recipe {
     SELECT Recipe.*,User.*, Detail_recipe.*, Ingredient.*, Step_recipe.*,Review_recipe.*
           FROM Recipe
           LEFT JOIN User ON Recipe.Frk_user = User.Id_user
-          LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.Frk_recipe
-          LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.Frk_recipe
-          LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.Frk_recipe
-          LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
-          LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = Review_recipe.Frk_recipe
+          LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
+          LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
+          LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
+          LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
+          LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
           WHERE Recipe.Id_recipe = ?
     `;
 
@@ -537,9 +537,9 @@ class Recipe {
 
           reviewSet.add(
             JSON.stringify({
-              id: row.Id_Review_recipe,
-              detailReview: row.Detail_Review_recipe,
-              rateReview: row.Rate_Review_recipe,
+              id: row.Id_review_recipe,
+              detailReview: row.Detail_review_recipe,
+              rateReview: row.Rate_review_recipe,
               recipeId: row.FRK_recipe,
             })
           );
@@ -547,9 +547,9 @@ class Recipe {
           stepSet.add(
             JSON.stringify({
               id: row.Id_Step_recipe,
-              detailStep: row.Detail_Step_recipe,
-              imageStep: row.Image_Step_recipe,
-              timeStep: row.Time_Step_recipe,
+              detailStep: row.Detail_step_recipe,
+              imageStep: row.Image_step_recipe,
+              timeStep: row.Time_step_recipe,
               recipeId: row.FRK_recipe,
             })
           );
@@ -814,7 +814,7 @@ class Recipe {
 
             // Retrieve the recipe ID using the unique_key_recipe
             db.get(
-              `SELECT unique_key_recipe FROM Recipe WHERE unique_key_recipe = ?`,
+              `SELECT * FROM Recipe WHERE unique_key_recipe = ?`,
               [uniqueKey],
               (err, row) => {
                 if (err || !row) {
@@ -824,6 +824,8 @@ class Recipe {
                 }
 
                 const recipeId = row.Id_recipe;
+                console.log(recipeId);
+                
 
                 // Update detail recipe
                 db.run(
@@ -844,7 +846,7 @@ class Recipe {
                       console.error("Error updating detail recipe:", err);
                       return callback(err);
                     }
-
+                    
                     // Update ingredients
                     Recipe.updateIngredients(db, ingredients, recipeId, (err) => {
                       if (err) {

@@ -98,7 +98,7 @@ class DetailRecipe {
   static getRecipeByDetailrecipeId(detailRecipeId, callback) {
     const db = new sqlite3.Database('DB_Notebook.db');
     db.get(
-      'SELECT Frk_recipe FROM Detail_recipe WHERE Id_Detail_recipe = ?',
+      'SELECT FRK_recipe FROM Detail_recipe WHERE Id_Detail_recipe = ?',
       [detailRecipeId],
       (err, row) => {
         if (err) {

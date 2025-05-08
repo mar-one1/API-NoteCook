@@ -51,7 +51,7 @@ class IngredientRecipe {
           row.Ingredient_recipe,
           row.PoidIngredient_recipe,
           row.Unite,
-          row.FRk_Detail_recipe
+          row.FRk_recipe
         );
       });
       callback(null, ingredientRecipes);
@@ -62,7 +62,7 @@ class IngredientRecipe {
   static getIngredientRecipeById(ingredientId, callback) {
     const db = new sqlite3.Database("DB_Notebook.db");
     db.get(
-      "SELECT * FROM Ingredient WHERE Id_Ingredient_recipe = ?",
+      "SELECT * FROM Ingredient WHERE Id_ingredient_recipe = ?",
       [ingredientId],
       (err, row) => {
         if (err) {
@@ -122,7 +122,7 @@ class IngredientRecipe {
   ) {
     const db = new sqlite3.Database("DB_Notebook.db");
     db.run(
-      "UPDATE Ingredient SET Ingredient_recipe = ?, PoidIngredient_recipe = ?, Unite, FRK_recipe = ? WHERE Id_Ingredient_recipe = ?",
+      "UPDATE Ingredient SET Ingredient_recipe = ?, PoidIngredient_recipe = ?, Unite, FRK_recipe = ? WHERE Id_ingredient_recipe = ?",
       [ingredient, poidIngredient, unite, recipeId, ingredientId],
       function (err) {
         if (err) {
@@ -149,7 +149,7 @@ class IngredientRecipe {
   static deleteIngredientRecipe(ingredientId, callback) {
     const db = new sqlite3.Database("DB_Notebook.db");
     db.run(
-      "DELETE FROM Ingredient WHERE Id_Ingredient_recipe = ?",
+      "DELETE FROM Ingredient WHERE Id_ingredient_recipe = ?",
       [ingredientId],
       function (err) {
         if (err) {

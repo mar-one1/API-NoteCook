@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS "Ingredient" (
     "PoidIngredient_recipe" REAL,
     "Unite" TEXT,
     "FRK_recipe" INTEGER,
-    FOREIGN KEY ("FRK_recipe") REFERENCES "Detail_recipe"("Id_detail_recipe") ON DELETE CASCADE
+    FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the StepRecipe table
 CREATE TABLE IF NOT EXISTS "Step_recipe" (
