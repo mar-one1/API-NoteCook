@@ -42,7 +42,7 @@ authRouter.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.id_user, username: user.username },
       secretKey,
-      { expiresIn: "0.5h" } // Token expiration time (adjust as needed)
+      { expiresIn: "1h" } // Token expiration time (adjust as needed)
     );
 
     res.status(200).json({ message: "Authentication successful", token });
