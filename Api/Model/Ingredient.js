@@ -47,7 +47,7 @@ class IngredientRecipe {
       }
       const ingredientRecipes = rows.map((row) => {
         return new IngredientRecipe(
-          row.Id_Ingredient_recipe,
+          row.Id_ingredient_recipe,
           row.Ingredient_recipe,
           row.PoidIngredient_recipe,
           row.Unite,
@@ -75,7 +75,7 @@ class IngredientRecipe {
         }
 
         const ingredientRecipe = new IngredientRecipe(
-          row.Id_Ingredient_recipe,
+          row.Id_ingredient_recipe,
           row.Ingredient_recipe,
           row.PoidIngredient_recipe,
           row.Unite,
@@ -99,7 +99,7 @@ class IngredientRecipe {
         }
         const ingredients = rows.map((row) => {
           return new IngredientRecipe(
-            row.Id_Ingredient_recipe,
+            row.Id_ingredient_recipe,
             row.Ingredient_recipe,
             row.PoidIngredient_recipe,
             row.Unite,
