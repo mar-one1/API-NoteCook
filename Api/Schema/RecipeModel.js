@@ -1,5 +1,25 @@
-const { DataTypes, Model } = require('sequelize');
-const sequelize = require('../Model/connection'); // Assuming you have a connection to your database
+let DataTypes, Model;
+
+try {
+  // Try to import Sequelize components
+  const sequelizeImport = require('sequelize');
+  DataTypes = sequelizeImport.DataTypes;
+  Model = sequelizeImport.Model;
+} catch (error) {
+  console.error('Error importing Sequelize:', error.message);
+  // Create mock classes if import fails
+  DataTypes = {
+    INTEGER: 'INTEGER',
+    STRING: 'STRING',
+    BOOLEAN: 'BOOLEAN',
+    TEXT: 'TEXT',
+    DATE: 'DATE'
+  };
+  Model = class MockModel {};
+}
+
+// Import the sequelize connection (which may be real or a mock)
+const sequelize = require('../Model/connection');
 
 // Define the Recipe model with explicit table name
 class Recipe extends Model {}

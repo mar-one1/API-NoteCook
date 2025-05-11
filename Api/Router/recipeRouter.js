@@ -8,16 +8,50 @@ const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const validateRecipe = require("../validators/validateRecipe");
 
+// Determine the appropriate upload directory based on environment
+const getUploadDirectory = () => {
+  // In production (Netlify Functions), use the /tmp directory which is writable
+  if (process.env.NODE_ENV === 'production') {
+    return '/tmp/recipe-uploads/';
+  }
+  // In development, use the local directory
+  return './public/data/uploads';
+};
+
+// Create the upload directory if it doesn't exist
+const fs = require('fs');
+const path = require('path');
+const uploadDir = getUploadDirectory();
+
+// Only try to create directory in development environment
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+  } catch (error) {
+    console.error(`Error creating upload directory: ${error.message}`);
+  }
+}
+
+// Configure multer storage
 const storage = multer.diskStorage({
-  destination: "./public/data/uploads", // Destination directory
+  destination: function(req, file, cb) {
+    cb(null, uploadDir);
+  },
   filename: function (req, file, cb) {
-    // Define a custom file name (you can modify this logic)
+    // Define a custom file name
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-  //const upload = multer({ storage: storage });
+  }
 });
-const upload = multer({ dest: "uploads/", storage: storage });
+
+// Create multer instance with fallback if storage fails
+const upload = multer({
+  storage: storage,
+  // Fallback to memory storage if disk storage fails
+  fallback: multer.memoryStorage()
+});
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {

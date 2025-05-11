@@ -1,0 +1,24 @@
+[build]
+  command = "npm install"
+  publish = "public"
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  directory = "functions"
+  # Use the zisi bundler instead of esbuild
+  node_bundler = "zisi"
+  # Include all database-related modules as external
+  external_node_modules = ["pg-hstore", "sqlite3", "better-sqlite3", "pg", "sequelize", "tedious", "mysql2", "oracledb", "mariadb", "mssql"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/index/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/index"
+  status = 200

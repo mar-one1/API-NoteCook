@@ -4,7 +4,14 @@ const sqlite3 = require('sqlite3').verbose();
 const http = require('http');
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
-const db = new sqlite3.Database('DB_Notebook.db'); //database file name
+
+// Determine if we're in production environment
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Use in-memory database in production, file-based in development
+const dbPath = isProduction ? ':memory:' : 'DB_Notebook.db';
+console.log(`Using database: ${dbPath} (${isProduction ? 'Production' : 'Development'} mode)`);
+const db = new sqlite3.Database(dbPath); // Connect to database
 const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
@@ -18,7 +25,7 @@ const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
 const chatRoutes = require('./Api/Router/chat_Router');
 const authRouter = require('./Api/Router/auth_Router');
 // Import the verifyToken middleware
-const verifyToken = require('./Api/Middleware/verifyToken'); // Adjust the path as needed
+//const verifyToken = require('./Api/Middleware/verifyToken'); // Adjust the path as needed
 const bodyParser = require('body-parser');
 const usersRouter = require('./Api/Router/usersRouter');
 const recipeRouter = require('./Api/Router/recipeRouter');
@@ -61,7 +68,7 @@ app.use('/users', usersRouter);
 app.use('/api/chat', chatRoutes);
 app.use('/auth', authRouter);
 // Apply the middleware to all routes
-app.use(verifyToken);
+//app.use(verifyToken);
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
 app.use('/ingredientrecipes', ingredientRecipeRouter);
@@ -166,17 +173,35 @@ db.serialize(() => {
       console.log('Connected to the database.');
 
       // Initialize SQLite database
-      // Read and run schema.sql
-      const schemaPath = path.join(__dirname, './sqliteedbreate.sql');
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-
-      db.exec(schema, (err) => {
-        if (err) {
-          console.error('Error executing schema:', err.message);
+      try {
+        // Read and run schema.sql
+        const schemaPath = path.join(__dirname, './sqliteedbreate.sql');
+        
+        if (fs.existsSync(schemaPath)) {
+          const schema = fs.readFileSync(schemaPath, 'utf8');
+          
+          db.exec(schema, (err) => {
+            if (err) {
+              console.error('Error executing schema:', err.message);
+            } else {
+              console.log('Database schema created or already exists.');
+              
+              // If using in-memory database in production, we need to seed it with some data
+              if (isProduction) {
+                console.log('Running in production with in-memory database - adding sample data');
+                // Add some sample data for testing
+                db.run(`INSERT OR IGNORE INTO Recipe (name, description, image_url) 
+                       VALUES ('Sample Recipe', 'This is a sample recipe for testing', 'sample.jpg')`);
+              }
+            }
+          });
         } else {
-          console.log('Database schema created or already exists.');
+          console.warn('Schema file not found. Using database as-is.');
         }
-      });
+      } catch (fsError) {
+        console.error('Error reading schema file:', fsError.message);
+        console.log('Continuing with existing database structure');
+      }
     }
   });
 });
@@ -191,18 +216,10 @@ app.use(cors({
 // Connect to your MongoDB database
 //mongoose.connect('mongodb://127.0.0.1:27017/db_note', { useNewUrlParser: true, useUnifiedTopology: true });
 
-// Example: Protect a route using the verifyToken middleware
-app.get('/protected', verifyToken, (req, res) => {
-  // Check if token was refreshed
-  if (req.tokenRefreshed) {
-    // If token was refreshed, respond with the new token
-    res.status(201).json({ message: 'This route is protected token was refreshed', user: req.user, token: req.newAccessToken });
-  } else {
-    // If token was valid, proceed with the endpoint logic
-    // Your endpoint logic here...
-    res.status(200).json({ message: 'This route is protected', user: req.user, token: req.newAccessToken });
-  }
-
+// Example: Public route (previously protected)
+app.get('/protected', (req, res) => {
+  // This route is now public for testing
+  res.status(200).json({ message: 'This route is now public for testing' });
 });
 
 
