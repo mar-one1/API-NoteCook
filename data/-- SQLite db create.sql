@@ -236,7 +236,7 @@ CREATE TABLE "Ingredients" (
     "Id_List_Ingredients_recipe"  SERIAL primary key ,
     "Frk_Ingredient_recipe" integer,
     "FRK_recipe" integer,
-    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "Ingredients"("Id_ingredient_recipe") ON DELETE CASCADE,
+    FOREIGN KEY ("Frk_Ingredient_recipe") REFERENCES "IngredientRecipe"("Id_ingredient_recipe") ON DELETE CASCADE,
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
 -- Create the StepRecipe table
