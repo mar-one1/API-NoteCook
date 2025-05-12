@@ -25,15 +25,13 @@ const stepRecipeRouter = require('./Api/Router/step_recipeRouter');
 const reviewRecipeRouter = require('./Api/Router/review_recipeRouter');
 const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
-const recipeModelRouter = require('./Api/Repo/recipeModelRouter');
-const categoryModelRouter = require('./Api/Router/category_Router');
 
 // Initialize the users object to store socket connections
 const users = {};
 
 // PostgreSQL Connection Setup
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL_LOCAL, // Use environment variable for your database connection string
+  connectionString: process.env.DATABASE_URL, // Use environment variable for your database connection string
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // Only enable SSL in production
 });
 
@@ -65,8 +63,6 @@ app.use('/steprecipes', stepRecipeRouter);
 app.use('/reviewrecipes', reviewRecipeRouter);
 app.use('/produits', produitRouter);
 app.use('/favorites', favRouter);
-app.use('/api', recipeModelRouter);
-app.use('/category', categoryModelRouter);
 
 // Socket.io setup
 const io = socketIo(server, {
@@ -164,7 +160,12 @@ const connectToDb = async () => {
 };
 connectToDb();
 
-// Start the server
-server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}/`);
-});
+// Start the server if not in serverless environment
+if (process.env.NODE_ENV !== 'production') {
+  server.listen(port, () => {
+    console.log(`Server is running at http://localhost:${port}/`);
+  });
+}
+
+// Export the Express app for serverless function
+module.exports = app;

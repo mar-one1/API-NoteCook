@@ -7,17 +7,7 @@ router.use(express.urlencoded({ extended: true }));
 const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const validateRecipe = require("../validators/validateRecipe");
-
-const storage = multer.diskStorage({
-  destination: "./public/data/uploads", // Destination directory
-  filename: function (req, file, cb) {
-    // Define a custom file name (you can modify this logic)
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-  //const upload = multer({ storage: storage });
-});
-const upload = multer({ dest: "uploads/", storage: storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
@@ -50,29 +40,30 @@ router.delete("/delete/:path", (req, res) => {
   });
 });
 
+const { processUploadedFile } = require('../utils/fileUpload');
+
 router.post("/upload/:id", upload.single("image"), async (req, res) => {
   const id = req.params.id;
   console.log(req.body);
-  console.log(req.file);
   
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
 
-  // Process the uploaded file
-  const fileName = req.file.filename;
-  const imageUrl = encodeURIComponent(fileName);
-  console.log(id);
-
   try {
+    // Process the uploaded file and get base64 data
+    const { filename, base64Data } = processUploadedFile(req.file);
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+
     // Call the method to update recipe image
     await Recipe.updateRecipeImage(id, imageUrl, (err, result) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-      res.status(201).json(result);  // Return success message
+      res.status(201).json(result);
     });
   } catch (err) {
+    console.error('Error processing upload:', err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
