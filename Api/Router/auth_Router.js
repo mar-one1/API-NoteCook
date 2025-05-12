@@ -4,7 +4,8 @@ const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
 const pool = require("../../data/database"); // Import your PostgreSQL pool
 // Secret key for JWT token (change this to a secure value in production)
-const secretKey = process.env.JWT_SECRET;
+const config = require('../../config');
+const secretKey = config.JWT_SECRET;
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
 

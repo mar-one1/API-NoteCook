@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 // Secret key used to sign and verify tokens
 const User = require('../Model/User');
 const { Error } = require('sequelize');
-const secretKey = process.env.JWT_SECRET;
+const config = require('../../config');
+const secretKey = config.JWT_SECRET;
 
 function verifyToken(req, res, next) {
   const authToken = req.headers.authorization;
@@ -11,7 +12,7 @@ function verifyToken(req, res, next) {
     return res.status(403).json({ error: 'Authorization token not provided' });
   }
 
-  const token = authToken.replace('Bearer ', '');``
+  const token = authToken.replace('Bearer ', '');
 
   jwt.verify(token, secretKey, (err, decoded) => {
     let userInfo;
