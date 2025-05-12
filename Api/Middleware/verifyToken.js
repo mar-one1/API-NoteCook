@@ -11,7 +11,7 @@ function verifyToken(req, res, next) {
     return res.status(403).json({ error: 'Authorization token not provided' });
   }
 
-  const token = authToken.replace('Bearer ', '');``
+  const token = authToken.replace('Bearer ', '');
 
   jwt.verify(token, secretKey, (err, decoded) => {
     let userInfo;
