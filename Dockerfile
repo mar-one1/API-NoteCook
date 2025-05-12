@@ -17,6 +17,8 @@ COPY . .
 
 RUN chmod -R 777 /usr/src/app/Api
 
+RUN npm install -g nodemon
+
 # Download dependencies as a separate step to take advantage of Docker's caching
 # Leverage a cache mount to /root/.npm to speed up subsequent builds
 # Leverage bind mounts to package.json and package-lock.json to avoid having to copy them into this layer
@@ -32,4 +34,4 @@ USER node
 EXPOSE 3000
 
 # Run the application
-CMD npm run serve
+CMD ["nodemon", "index.js"]
