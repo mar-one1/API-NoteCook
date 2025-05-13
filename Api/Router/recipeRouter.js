@@ -56,7 +56,7 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
     const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
     // Call the method to update recipe image
-    await Recipe.updateRecipeImage(id, base64Data, (err, result) => {
+    await Recipe.updateRecipeImage(id, imageUrl, (err, result) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
