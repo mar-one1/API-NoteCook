@@ -115,7 +115,7 @@ router.post('/upload/:username', upload.single('image'), async (req, res) => {
     console.log('Generated base64 image URL');
 
     // Update the user's image in the database
-    User.updateUserImage(username, imageUrl, (err, updatedImageUrl) => {
+    User.updateUserImage(username, base64Data, (err, updatedImageUrl) => {
       if (err) {
         console.error('Error updating user image:', err);
         return res.status(500).json({ error: 'Failed to update user image.' });
