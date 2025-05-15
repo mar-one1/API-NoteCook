@@ -15,11 +15,11 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "serve": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "netlify deploy --prod"
-  },
+  "start": "node index.js",
+  "serve": "nodemon index.js",
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "build": "chmod -R 755 ./Api && netlify deploy --prod"
+},
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "axios": "^1.5.1",
