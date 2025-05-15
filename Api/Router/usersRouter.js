@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../Model/User');
+const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const fs = require('fs');
 router.use(express.json()); 
@@ -30,7 +32,16 @@ const validateUser = require('../validators/validateUser');
 
 
 //router.use(bodyParser.json());
-const upload = multer({ storage: multer.memoryStorage() });
+const storage = multer.diskStorage({
+  destination: './public/uploads/', // Destination directory
+  filename: function (req, file, cb) {
+      // Define a custom file name (you can modify this logic)
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+  } 
+//const upload = multer({ storage: storage });
+});
+const upload = multer({ dest: 'uploads/', storage: storage})
 
 // Create a new user
 // Create a new user
@@ -96,12 +107,11 @@ router.delete('/delete/:path', (req, res) => {
   });
 });
 
-const { processUploadedFile } = require('../utils/fileUpload');
-
 router.post('/upload/:username', upload.single('image'), async (req, res) => {
   const username = req.params.username;
 
   console.log('Request body:', req.body);
+  console.log('Uploaded file info:', req.file);
 
   // Check if a file is uploaded
   if (!req.file) {
@@ -109,10 +119,10 @@ router.post('/upload/:username', upload.single('image'), async (req, res) => {
   }
 
   try {
-    // Process the uploaded file and get base64 data
-    const { filename, base64Data } = processUploadedFile(req.file);
-    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
-    console.log('Generated base64 image URL');
+    // Get the filename from the uploaded file
+    const fileName = req.file.filename;
+    const imageUrl = encodeURIComponent(fileName); // Encoding filename for safety
+    console.log('Encoded Image URL:', imageUrl);
 
     // Update the user's image in the database
     User.updateUserImage(username, imageUrl, (err, updatedImageUrl) => {
