@@ -1,16 +1,15 @@
 const express = require('express');
 const app = express();
 const { Pool } = require('pg'); // PostgreSQL client
-const http = require('http');
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
 const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
-const messageModel = require('./Api/Model/chat'); // Replace with your actual message model
 const cors = require('cors');
 const dotenv = require('dotenv'); // Load environment variables from .env file
 dotenv.config(); // Ensure the environment variables are loaded
+const { users } = require('./Api/handlers/socketHandler');
 
 const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
 const chatRoutes = require('./Api/Router/chat_Router');
@@ -26,8 +25,8 @@ const reviewRecipeRouter = require('./Api/Router/review_recipeRouter');
 const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
 
-// Initialize the users object to store socket connections
-const users = {};
+// Import socket handler setup
+const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 
 // PostgreSQL Connection Setup
 const pool = new Pool({
@@ -64,62 +63,22 @@ app.use('/reviewrecipes', reviewRecipeRouter);
 app.use('/produits', produitRouter);
 app.use('/favorites', favRouter);
 
-// Socket.io setup
+// Socket.io setup with CORS configuration
 const io = socketIo(server, {
   pingTimeout: 60000, // 60 seconds ping timeout
   pingInterval: 25000, // 25 seconds ping interval
+  cors: {
+    origin: '*', // Allow all origins for testing
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'token']
+  }
 });
 
-io.on('connection', (socket) => {
-  console.log(socket.id + ': user connected');
-  
-  // Handle user registration with user ID
-  socket.on('register', (userId) => {
-    users[userId] = socket.id;
-    console.log(`User ${userId} registered with socket ID ${socket.id}`);
-  });
+// Make io instance available to routes
+app.set('io', io);
 
-  // Handle chat message event
-  socket.on('chat message', (data) => {
-    console.log('Received message:', data);
-
-    // Save message to the PostgreSQL database
-    messageModel.saveMessage(data, (err, savedMessage) => {
-      if (err) {
-        console.error('Error saving message', err);
-      } else {
-        console.log('Message saved:', savedMessage);
-
-        // Emit message to the receiver if they are connected
-        const receiverSocketId = users[data.receiverId];
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit('chat message', {
-            recipeId: data.recipeId,
-            senderId: data.senderId,
-            receiverId: data.receiverId,
-            message: data.message,
-            timestamp: savedMessage.timestamp,
-          });
-        } else {
-          console.log(`User ${data.receiverId} is not connected`);
-        }
-      }
-    });
-  });
-
-  // Handle disconnect event
-  socket.on('disconnect', () => {
-    console.log('A user disconnected');
-    // Remove user from the users object
-    for (const userId in users) {
-      if (users[userId] === socket.id) {
-        delete users[userId];
-        console.log(`User ${userId} removed from users object`);
-        break;
-      }
-    }
-  });
-});
+// Setup socket handlers
+setupSocketHandlers(io);
 
 // Register route to check if a user is connected
 app.get('/isUserConnected/:userId', (req, res) => {

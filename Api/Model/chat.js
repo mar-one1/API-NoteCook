@@ -1,13 +1,14 @@
 const pool = require("../../data/database"); // Assuming you have a PostgreSQL connection pool setup
 
 class Chat {
-  constructor(id, recipeId, senderId, receiverId, message, timestamp) {
+  constructor(id, recipeId, senderId, receiverId, message, timestamp, status = 'sent') {
     this.id = id;
     this.recipeId = recipeId;
     this.senderId = senderId;
     this.receiverId = receiverId;
     this.message = message;
     this.timestamp = timestamp;
+    this.status = status;
   }
 
   // Fetch all messages for a specific recipe
@@ -44,31 +45,46 @@ class Chat {
     }
   }
 
-  // Save a new message to the database
-  static async saveMessage(data, callback) {
-    const { recipeId, senderId, receiverId, message } = data;
-
+  // Update message status
+  static async updateMessageStatus(messageId, status, readAt = null) {
     try {
       const result = await pool.query(
-        `INSERT INTO "messages" ("recipeId", "senderId", "receiverId", "message") 
-         VALUES ($1, $2, $3, $4) RETURNING *`,
-        [recipeId, senderId, receiverId, message]
+        `UPDATE "messages" SET status = $1, read_at = $2 WHERE id = $3 RETURNING *`,
+        [status, readAt, messageId]
       );
+      return result.rows[0];
+    } catch (err) {
+      console.error('Error updating message status:', err);
+      throw err;
+    }
+  }
 
-      const insertedMessage = result.rows[0];
-      callback(
-        null,
-        new Chat(
-          insertedMessage.id,
-          insertedMessage.recipeId,
-          insertedMessage.senderId,
-          insertedMessage.receiverId,
-          insertedMessage.message,
-          insertedMessage.timestamp
-        )
+  // Save a new message to the database
+  static async updateMessageStatus(messageId, status, callback) {
+    try {
+      const result = await pool.query(
+        `UPDATE "messages" SET status = $1 WHERE id = $2 RETURNING *`,
+        [status, messageId]
       );
+      callback(null, result.rows[0]);
     } catch (err) {
       callback(err, null);
+    }
+  }
+
+  static async saveMessage(data, callback) {
+    const { recipeId, senderId, receiverId, message } = data;
+    try {
+      const result = await pool.query(
+        `INSERT INTO messages ("recipeId", "senderId", "receiverId", "message", "timestamp")
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+        [recipeId, senderId, receiverId, message, new Date()]
+      );
+      callback(null, result.rows[0]);
+    } catch (err) {
+      console.error('❌ Error in saveMessage:', err); // This will help you debug
+      callback(err);
     }
   }
 }

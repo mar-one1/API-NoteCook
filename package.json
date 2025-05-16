@@ -18,7 +18,8 @@
   "start": "node index.js",
   "serve": "nodemon index.js",
   "test": "echo \"Error: no test specified\" && exit 1",
-  "build": "chmod -R 755 ./Api && netlify deploy --prod"
+  "build": "chmod -R 755 ./Api && netlify deploy --prod",
+  "dev": "node index.js"
 },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

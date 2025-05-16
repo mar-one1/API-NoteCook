@@ -6,3 +6,8 @@
     from = "/*"
     to = "/.netlify/functions/api"
     status = 200
+
+[dev]
+  command = "npm run dev"
+  port = 8888
+  publish = "/Api"  # or "public" or wherever your static files are

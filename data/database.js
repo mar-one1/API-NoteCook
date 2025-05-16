@@ -3,7 +3,7 @@ const config = require('../config');
 
 // PostgreSQL Connection Setup
 const pool = new Pool({
-    connectionString: config.DATABASE_URL,
+    connectionString: config.POSTGRES_URL_LOCAL,
     ssl: {
         rejectUnauthorized: false
     }
