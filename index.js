@@ -24,15 +24,10 @@ const stepRecipeRouter = require('./Api/Router/step_recipeRouter');
 const reviewRecipeRouter = require('./Api/Router/review_recipeRouter');
 const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
+const categoryRouter = require('./Api/Router/category_Router');
 
 // Import socket handler setup
 const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
-
-// PostgreSQL Connection Setup
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Use environment variable for your database connection string
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false, // Only enable SSL in production
-});
 
 
 app.delete('/cleanup-images', async (req, res) => {
@@ -62,6 +57,7 @@ app.use('/steprecipes', stepRecipeRouter);
 app.use('/reviewrecipes', reviewRecipeRouter);
 app.use('/produits', produitRouter);
 app.use('/favorites', favRouter);
+app.use('/categories', categoryRouter);
 
 // Socket.io setup with CORS configuration
 const io = socketIo(server, {
@@ -105,19 +101,6 @@ app.get('/protected', verifyToken, (req, res) => {
     res.status(200).json({ message: 'This route is protected', user: req.user, token: req.newAccessToken });
   }
 });
-
-// Connect to PostgreSQL and perform a test query
-const connectToDb = async () => {
-  try {
-    const client = await pool.connect();
-    const result = await client.query("SELECT NOW()");
-    console.log('Connected to PostgreSQL:', result.rows[0]);
-    client.release();
-  } catch (err) {
-    console.error('Error executing query', err.stack);
-  }
-};
-connectToDb();
 
 // Start the server if not in serverless environment
 if (process.env.NODE_ENV !== 'production') {

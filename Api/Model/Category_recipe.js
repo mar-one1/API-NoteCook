@@ -34,6 +34,7 @@ class Categoryrecipe {
       const categoryRecipes = result.rows.map(row => new Categoryrecipe(
         row.Id_Categorie_recipe,
         row.Icon_Categorie_recipe,
+        row.Icon_Path_Categorie_recipe,
         row.Detail_Categorie_recipe
       ));
       callback(null, categoryRecipes);

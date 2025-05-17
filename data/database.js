@@ -1,20 +1,22 @@
 const { Pool } = require('pg');
-const config = require('../config');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
 // PostgreSQL Connection Setup
 const pool = new Pool({
-    connectionString: config.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+  connectionString : isDevelopment ? process.env.POSTGRES_URL_LOCAL: process.env.DATABASE_URL, // Use environment variable for your database connection string
+  ssl: !isDevelopment ? { rejectUnauthorized: false } : false, // Only enable SSL in production
 });
 
-// Test the connection
-pool.connect()
-    .then(() => console.log('Connected to PostgreSQL successfully!'))
-    .catch(err => {
-        console.error('Failed to connect to PostgreSQL:', err);
-        throw err;
-    });
-
+// Connect to PostgreSQL and perform a test query
+const connectToDb = async () => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query("SELECT NOW()");
+    console.log('Connected to PostgreSQL:', result.rows[0]);
+    client.release();
+  } catch (err) {
+    console.error('Failed to connect to PostgreSQL:', err.stack);
+  }
+};
+connectToDb();
 module.exports = pool;
