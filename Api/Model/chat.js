@@ -26,7 +26,7 @@ class Chat {
             row.senderId,
             row.receiverId,
             row.message,
-            row.timestamp
+            row.timestamp.toISOString
           )
       );
       callback(null, chats);
@@ -79,7 +79,7 @@ class Chat {
         `INSERT INTO messages ("recipeId", "senderId", "receiverId", "message", "timestamp")
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-        [recipeId, senderId, receiverId, message, new Date()]
+        [recipeId, senderId, receiverId, message, new Date().toISOString()]
       );
       callback(null, result.rows[0]);
     } catch (err) {
