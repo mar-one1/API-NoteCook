@@ -269,7 +269,9 @@ CREATE TABLE IF NOT EXISTS "messages" (
     "senderId" INTEGER NOT NULL,
     "receiverId" INTEGER NOT NULL,
     "message" TEXT NOT NULL,
-    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "status" TEXT DEFAULT 'sent',
+    "readAt" TIMESTAMP
 );
 
 CREATE TABLE "Categorie_recipe" (

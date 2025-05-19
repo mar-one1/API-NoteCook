@@ -107,4 +107,23 @@ router.put('/messages/:messageId/status', (req, res) => {
     });
 });
 
+router.delete('/message/:id', async (req, res) => {
+  const messageId = parseInt(req.params.id);
+ // مثال: تمنع حذف رسالة من غير المرسل
+      const message = await messageModel.getMessageById(messageId);
+      if (message.senderId !== req.user.id) {
+        return res.status(403).json({ error: 'Unauthorized to delete this message' });
+      }
+  try {
+    const deletedMessage = await messageModel.deleteMessage(messageId);
+    res.status(200).json({
+      message: 'Message deleted successfully',
+      data: deletedMessage,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;

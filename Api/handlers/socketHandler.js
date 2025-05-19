@@ -6,7 +6,7 @@ const users = {};
 const setupSocketHandlers = (io) => {
   io.on('connection', (socket) => {
     console.log(socket.id + ': user connected');
-    
+
     // Handle user registration with user ID
     socket.on('register', (userId) => {
       users[userId] = socket.id;
@@ -93,16 +93,23 @@ const setupSocketHandlers = (io) => {
     });
 
     // Handle message read status
-    socket.on('message read', (data) => {
-      const senderSocketId = users[data.senderId];
-      if (senderSocketId) {
-        io.to(senderSocketId).emit('message status', {
-          messageId: data.messageId,
-          status: 'read',
-          timestamp: new Date()
-        });
+    socket.on('message read', async (data) => {
+      try {
+        const updatedMessage = await messageModel.markMessageAsRead(data.messageId);
+
+        const senderSocketId = users[data.senderId];
+        if (senderSocketId) {
+          io.to(senderSocketId).emit('message status', {
+            messageId: data.messageId,
+            status: 'read',
+            readAt: updatedMessage.readAt
+          });
+        }
+      } catch (err) {
+        console.error('❌ Error handling message read:', err);
       }
     });
+
 
     // Handle disconnect event
     socket.on('disconnect', () => {
@@ -118,6 +125,8 @@ const setupSocketHandlers = (io) => {
       }
     });
   });
+
+
 
   // Schedule periodic cleanup of expired messages
   setInterval(async () => {

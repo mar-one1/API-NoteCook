@@ -91,6 +91,57 @@ class Chat {
       callback(err);
     }
   }
+
+
+  // Delete a message by ID
+  static async deleteMessage(messageId) {
+    try {
+      const result = await pool.query(
+        `DELETE FROM "messages" WHERE "id" = $1 RETURNING *`,
+        [messageId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error('Message not found');
+      }
+
+      return result.rows[0]; // ترجع الرسالة المحذوفة
+    } catch (err) {
+      console.error('❌ Error deleting message:', err);
+      throw err;
+    }
+  }
+
+
+  static async getMessageById(messageId) {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM "messages" WHERE "id" = $1`,
+        [messageId]
+      );
+      return result.rows[0]; // null if not found
+    } catch (err) {
+      console.error('❌ Error fetching message:', err);
+      throw err;
+    }
+  }
+
+  // في chat.js
+static async markMessageAsRead(messageId) {
+  try {
+    const result = await pool.query(
+      `UPDATE "messages"
+       SET status = 'read', "readAt" = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [messageId]
+    );
+    return result.rows[0];
+  } catch (err) {
+    console.error('❌ Error marking message as read:', err);
+    throw err;
+  }
 }
 
+}
 module.exports = Chat;
