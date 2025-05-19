@@ -269,7 +269,7 @@ class User {
         row.Birthday_user,
         row.Email_user,
         row.Phonenumber_user,
-        row.Icon_user,  // Icon_user should not be null unless explicitly required
+        row.Icon_user== null,  // Icon_user should not be null unless explicitly required
         row.password,
         row.Grade_user,
         row.Status_user,

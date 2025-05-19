@@ -13,7 +13,7 @@ router.get('/messages', (req, res) => {
     });
 });
 // Endpoint to get messages by recipe id
-router.get('/messages/:recipeId', (req, res) => {
+/*router.get('/messages/:recipeId', (req, res) => {
     const id = req.params.recipeId;
     console.log(id);
     messageModel.getMessagesByRecipe(id, (err, messages) => {
@@ -22,7 +22,7 @@ router.get('/messages/:recipeId', (req, res) => {
         }
         res.json(messages);
     });
-});
+});*/
 // Endpoint to save a new message
 router.post('/messages', (req, res) => {
     const data = req.body;
@@ -36,7 +36,36 @@ router.post('/messages', (req, res) => {
         res.json(message);
     });
 });
+// Endpoint to get messages by recipe id
+router.get('/messages/:recipeId', async (req, res) => {
+    const recipeId = req.params.recipeId;
+    const userId = parseInt(req.query.userId); // <-- المتلقي
 
+    if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+    }
+
+    messageModel.getMessagesByRecipe(recipeId, async (err, messages) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error fetching messages' });
+        }
+
+        // Update unread messages to "read"
+        const unreadMessages = messages.filter(
+            (msg) => msg.receiverId === userId && msg.status !== 'read'
+        );
+
+        for (const msg of unreadMessages) {
+            try {
+                await messageModel.updateMessageStatusAsync(msg.id, 'read', new Date().toISOString());
+            } catch (updateErr) {
+                console.error('Error marking message as read:', updateErr);
+            }
+        }
+
+        res.json(messages);
+    });
+});
 // Endpoint to update message status (including rejection)
 router.put('/messages/:messageId/status', (req, res) => {
     const { messageId } = req.params;

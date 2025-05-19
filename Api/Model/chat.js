@@ -1,7 +1,7 @@
 const pool = require("../../data/database"); // Assuming you have a PostgreSQL connection pool setup
 
 class Chat {
-  constructor(id, recipeId, senderId, receiverId, message, timestamp, status = 'sent') {
+  constructor(id, recipeId, senderId, receiverId, message, timestamp, status = 'sent', readAt = null) {
     this.id = id;
     this.recipeId = recipeId;
     this.senderId = senderId;
@@ -9,6 +9,7 @@ class Chat {
     this.message = message;
     this.timestamp = timestamp;
     this.status = status;
+    this.readAt = readAt;
   }
 
   // Fetch all messages for a specific recipe
@@ -26,7 +27,9 @@ class Chat {
             row.senderId,
             row.receiverId,
             row.message,
-            row.timestamp.toISOString
+            row.timestamp,
+            row.status,
+            row.readAt
           )
       );
       callback(null, chats);
@@ -45,11 +48,11 @@ class Chat {
     }
   }
 
-  // Update message status
-  static async updateMessageStatus(messageId, status, readAt = null) {
+  // Update message status and readAt using async/await
+  static async updateMessageStatusAsync(messageId, status, readAt = null) {
     try {
       const result = await pool.query(
-        `UPDATE "messages" SET status = $1, read_at = $2 WHERE id = $3 RETURNING *`,
+        `UPDATE "messages" SET "status" = $1, "readAt" = $2 WHERE "id" = $3 RETURNING *`,
         [status, readAt, messageId]
       );
       return result.rows[0];
@@ -59,11 +62,11 @@ class Chat {
     }
   }
 
-  // Save a new message to the database
+  // Update message status using callback
   static async updateMessageStatus(messageId, status, callback) {
     try {
       const result = await pool.query(
-        `UPDATE "messages" SET status = $1 WHERE id = $2 RETURNING *`,
+        `UPDATE "messages" SET "status" = $1 WHERE "id" = $2 RETURNING *`,
         [status, messageId]
       );
       callback(null, result.rows[0]);
@@ -72,14 +75,15 @@ class Chat {
     }
   }
 
+  // Save a new message to the database
   static async saveMessage(data, callback) {
     const { recipeId, senderId, receiverId, message } = data;
     try {
       const result = await pool.query(
-        `INSERT INTO messages ("recipeId", "senderId", "receiverId", "message", "timestamp")
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-        [recipeId, senderId, receiverId, message, new Date().toISOString()]
+        `INSERT INTO messages ("recipeId", "senderId", "receiverId", "message", "timestamp", "readAt")
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [recipeId, senderId, receiverId, message, new Date().toISOString(), null]
       );
       callback(null, result.rows[0]);
     } catch (err) {
