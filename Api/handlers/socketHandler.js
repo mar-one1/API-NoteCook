@@ -127,16 +127,15 @@ const setupSocketHandlers = (io) => {
   });
 
 
-
   // Schedule periodic cleanup of expired messages
-  setInterval(async () => {
+/*  setInterval(async () => {
     try {
       await messageModel.deleteExpiredMessages();
       console.log('Expired messages cleanup completed');
     } catch (err) {
       console.error('Error during message cleanup:', err);
     }
-  }, 3600000); // Run cleanup every hour
+  }, 3600000); // Run cleanup every hour*/
 };
 
 module.exports = {
