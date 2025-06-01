@@ -3,7 +3,7 @@ const app = express();
 const { Pool } = require('pg'); // PostgreSQL client
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
 const cors = require('cors');
@@ -20,6 +20,7 @@ const usersRouter = require('./Api/Router/usersRouter');
 const recipeRouter = require('./Api/Router/recipeRouter');
 const detailRecipeRouter = require('./Api/Router/detail_recipeRouter');
 const ingredientRecipeRouter = require('./Api/Router/ingredient_Router');
+const ingredientsRecipeRouter = require('./Api/Router/IngredientRecipe_Router');
 const stepRecipeRouter = require('./Api/Router/step_recipeRouter');
 const reviewRecipeRouter = require('./Api/Router/review_recipeRouter');
 const produitRouter = require('./Api/Router/produit_Router');
@@ -53,6 +54,7 @@ app.use(verifyToken); // Apply middleware to all routes
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
 app.use('/ingredientrecipes', ingredientRecipeRouter);
+app.use('/ingredientsrecipes', ingredientsRecipeRouter);
 app.use('/steprecipes', stepRecipeRouter);
 app.use('/reviewrecipes', reviewRecipeRouter);
 app.use('/produits', produitRouter);

@@ -280,3 +280,9 @@ CREATE TABLE "Categorie_recipe" (
     "Icon_Path_Categorie_recipe" TEXT,
     "Detail_Categorie_recipe" TEXT
 );
+
+CREATE TABLE "ingredient_recipe" (
+  id SERIAL PRIMARY KEY,
+  "Frk_idRecipe" INTEGER NOT NULL,
+  list_ingredients INTEGER[] NOT NULL
+);
