@@ -766,6 +766,8 @@ class Recipe {
       );
 
       const uniqueKey = recipe.unique_key;
+      console.log("Unique Key for update:", uniqueKey);
+      
 
       // Retrieve the recipe ID using the unique_key_recipe
       const recipeResult = await pool.query(
@@ -774,8 +776,10 @@ class Recipe {
       );
 
       if (recipeResult.rows.length === 0) {
-        await pool.query("ROLLBACK");
-        return callback(new Error("Recipe not found"));
+        this.insertRecipeWithDetails(recipeData,callback);
+        //await pool.query("ROLLBACK");
+        //callback(null, uniqueKey);
+        return callback(new message("Recipe not found,creating new recipe : " + uniqueKey));
       }
 
       const recipeId = recipeResult.rows[0].Id_recipe;
