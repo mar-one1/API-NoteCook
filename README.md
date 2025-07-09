@@ -1,5 +1,4 @@
 # API notecook app
-# Eco-Drive API
 
 This is the backend API for the Notecook application, built with Node.js and Express.
 
