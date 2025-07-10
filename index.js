@@ -47,10 +47,11 @@ app.use(bodyParser.json());
 // Initialize Swagger documentation
 swaggerSetup(app);
 
-app.use('/users', usersRouter);
-app.use('/api/chat', chatRoutes);
+
 app.use('/auth', authRouter);
 app.use(verifyToken); // Apply middleware to all routes
+app.use('/api/chat', chatRoutes);
+app.use('/users', usersRouter);
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
 app.use('/ingredientrecipes', ingredientRecipeRouter);

@@ -39,8 +39,7 @@ router.post('/messages', (req, res) => {
 // Endpoint to get messages by recipe id
 router.get('/messages/:recipeId', async (req, res) => {
     const recipeId = req.params.recipeId;
-    const userId = parseInt(req.query.userId); // <-- المتلقي
-
+    const userId = parseInt(req.query.userId); 
     if (!userId) {
         return res.status(400).json({ error: 'userId is required' });
     }

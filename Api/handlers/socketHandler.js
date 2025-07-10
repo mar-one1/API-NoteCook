@@ -9,6 +9,7 @@ const setupSocketHandlers = (io) => {
 
     // Handle user registration with user ID
     socket.on('register', (userId) => {
+      console.log('register:', data);
       users[userId] = socket.id;
       console.log(`User ${userId} registered with socket ID ${socket.id}`);
       // Broadcast user online status
@@ -17,6 +18,7 @@ const setupSocketHandlers = (io) => {
 
     // Handle typing status
     socket.on('typing', (data) => {
+      console.log('typing:', data);
       const receiverSocketId = users[data.receiverId];
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('user typing', {
@@ -28,6 +30,7 @@ const setupSocketHandlers = (io) => {
 
     // Handle stop typing status
     socket.on('stop typing', (data) => {
+      console.log('stop typing:', data);
       const receiverSocketId = users[data.receiverId];
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('user stop typing', {

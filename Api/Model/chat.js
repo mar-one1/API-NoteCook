@@ -77,10 +77,22 @@ class Chat {
 
   // Save a new message to the database
   static async saveMessage(data, callback) {
-    const { recipeId, senderId, receiverId, message } = data;
+     console.log('📦 Incoming:', data);
+
+ let parsedData = data;
+if (typeof data === 'string') {
+  try {
+    parsedData = JSON.parse(data);
+    console.log('✅ Parsed data:', parsedData);
+  } catch (e) {
+    console.error('❌ Failed to parse data:', e);
+  }
+}
+
+const { recipeId, senderId, receiverId, message } = parsedData;
     try {
       const result = await pool.query(
-        `INSERT INTO messages ("recipeId", "senderId", "receiverId", "message", "timestamp", "readAt")
+        `INSERT INTO "messages" ("recipeId", "senderId", "receiverId", "message", "timestamp", "readAt")
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
         [recipeId, senderId, receiverId, message, new Date().toISOString(), null]
