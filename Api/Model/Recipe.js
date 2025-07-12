@@ -415,7 +415,7 @@ class Recipe {
         FROM "Recipe"
         LEFT JOIN "User" ON "Recipe"."Frk_user" = "User"."Id_user"
         LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
-        LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+        LEFT JOIN "IngredientRecipe" ON "DetailRecipe"."Id_detail_recipe" = "IngredientRecipe"."FRK_detail_recipe"
         LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
         LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
         WHERE "Recipe"."Id_recipe" = $1
@@ -821,6 +821,8 @@ class Recipe {
 
   static async updateIngredients(pool, ingredients, recipeId) {
     try {
+      console.log(recipeId);
+      
       // Delete existing ingredients
       await pool.query(
         `DELETE FROM "IngredientRecipe" WHERE "FRK_detail_recipe" = $1`,
