@@ -126,7 +126,7 @@ class StepRecipe {
   static async updateStepImage(unique, imagebyte, callback = () => { }) {
     try {
       const res = await pool.query(
-        `SELECT "Icon_recipe" FROM "Step" WHERE "Image_step_recipe" = $1`,
+        `SELECT "Image_step_recipe" FROM "StepRecipe" WHERE "Image_step_recipe" = $1`,
         [unique]
       );
 
@@ -136,7 +136,7 @@ class StepRecipe {
 
       const oldPath = res.rows[0].Icon_recipe;
       const updateRes = await pool.query(
-        `UPDATE "Icon_recipe" SET "Image_step_recipe" = $1 WHERE "Image_step_recipe" = $2`,
+        `UPDATE "StepRecipe" SET "Image_step_recipe" = $1 WHERE "Image_step_recipe" = $2`,
         [imagebyte, unique]
       );
 
