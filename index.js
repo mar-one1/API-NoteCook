@@ -49,9 +49,9 @@ swaggerSetup(app);
 
 
 app.use('/auth', authRouter);
+app.use('/users', usersRouter);
 app.use(verifyToken); // Apply middleware to all routes
 app.use('/api/chat', chatRoutes);
-app.use('/users', usersRouter);
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
 app.use('/ingredientrecipes', ingredientRecipeRouter);
