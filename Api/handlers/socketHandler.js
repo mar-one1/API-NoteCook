@@ -9,7 +9,7 @@ const setupSocketHandlers = (io) => {
 
     // Handle user registration with user ID
     socket.on('register', (userId) => {
-      console.log('register:', data);
+      //console.log('register:', data);
       users[userId] = socket.id;
       console.log(`User ${userId} registered with socket ID ${socket.id}`);
       // Broadcast user online status
