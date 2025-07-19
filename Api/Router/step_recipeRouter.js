@@ -1,6 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const StepRecipe = require("../Model/Step_recipe"); // Import the StepRecipe model
+router.use(express.json());
+router.use(express.urlencoded({ extended: true }));
+const multer = require("multer");
+
+
+const storage = multer.diskStorage({
+  destination: "./public/data/uploads", // Destination directory
+  filename: function (req, file, cb) {
+    // Define a custom file name (you can modify this logic)
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+  //const upload = multer({ storage: storage });
+});
+const upload = multer({ dest: "uploads/", storage: storage });
 
 // Create a step recipe
 router.post("/", (req, res) => {
@@ -73,6 +88,33 @@ router.put("/:id", (req, res) => {
       res.json(updatedStepRecipe);
     }
   );
+});
+
+router.post("/upload/:id", upload.single("image"), async (req, res) => {
+  const id = req.params.id;
+  console.log(req.body);
+  console.log(req.file);
+  
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+
+  // Process the uploaded file
+  const fileName = req.file.filename;
+  const imageUrl = encodeURIComponent(fileName);
+  console.log(id);
+
+  try {
+    // Call the method to update recipe image
+    await StepRecipe.updateStepImage(id, imageUrl, (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json(result);  // Return success message
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 // Delete a step recipe by ID

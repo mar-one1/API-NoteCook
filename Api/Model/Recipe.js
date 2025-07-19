@@ -414,7 +414,7 @@ static async insertRecipeWithDetails(recipeData, callback) {
         FROM "Recipe"
         LEFT JOIN "User" ON "Recipe"."Frk_user" = "User"."Id_user"
         LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
-        LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+        LEFT JOIN "IngredientRecipe" ON "DetailRecipe"."Id_detail_recipe" = "IngredientRecipe"."FRK_detail_recipe"
         LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
         LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
         WHERE "Recipe"."Id_recipe" = $1
@@ -545,7 +545,7 @@ static async insertRecipeWithDetails(recipeData, callback) {
         });
       });
     } catch (err) {
-      console.error("Error deleting image recipe: " + filePathToDelete, err);
+      console.error("Error deleting image : " + filePathToDelete, err);
       callback(err);  // Pass error to the callback
     }
   }

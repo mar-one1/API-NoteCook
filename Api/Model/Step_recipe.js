@@ -1,6 +1,8 @@
 const pool = require("../../data/database");
 const Recipe = require("../Model/Recipe"); // Import the Recipe model
 
+
+
 class StepRecipe {
   constructor(id, detailStep, imageStep, timeStep, recipeId) {
     this.id = id;
@@ -107,6 +109,48 @@ class StepRecipe {
       callback(null, updatedStepRecipe);
     });
   }
+
+
+  static async updateStepImage(unique, imagebyte, callback = () => { }) {
+    try {
+      const res = await pool.query(
+        `SELECT "Image_step_recipe" FROM "StepRecipe" WHERE "Image_step_recipe" = $1`,
+        [unique]
+      );
+
+      if (res.rows.length === 0) {
+        return callback(new Error("Recipe not found"));
+      }
+
+      const oldPath = res.rows[0].Icon_recipe;
+      const updateRes = await pool.query(
+        `UPDATE "StepRecipe" SET "Image_step_recipe" = $1 WHERE "Image_step_recipe" = $2`,
+        [imagebyte, unique]
+      );
+
+      if (updateRes.rowCount === 0) {
+        return callback(null, null); // Recipe not found or not updated
+      }
+      console.log("Old Path: ", oldPath);
+      if (oldPath) {
+        Recipe.deleteimage(oldPath, (err, message) => {
+          if (err) {
+            console.error("Error deleting old image:", err);
+            return callback(err);
+          }
+
+          console.log(message);
+          callback(null, imagebyte);  // Return the updated image byte data
+        });
+      } else {
+        callback(null, imagebyte);  // No old image to delete, return updated data
+      }
+    } catch (err) {
+      console.error("Error updating recipe image:", err);
+      callback(err);
+    }
+  }
+
 
   static deleteStepRecipe(stepId, callback) {
     const query = 'DELETE FROM "StepRecipe" WHERE "Id_step_recipe" = $1';

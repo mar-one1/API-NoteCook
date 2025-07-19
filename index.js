@@ -4,7 +4,7 @@ const { Pool } = require('pg'); // PostgreSQL client
 const http = require('http');
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
 const messageModel = require('./Api/Model/chat'); // Replace with your actual message model
