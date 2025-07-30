@@ -243,87 +243,98 @@ class Recipe {
 
   // Insert a recipe with all related data in one transaction
   static async insertRecipeWithDetails(recipeData, callback) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN'); // Start the transaction
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN'); // Start the transaction
 
-      const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
+    const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
 
-      // 1. Insert into Recipe table
-      const recipeResult = await client.query(
-        `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
-      VALUES ($1, $2, $3, $4, $5) RETURNING "Id_recipe"`,
-        [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
-      );
-      const recipeId = recipeResult.rows[0].Id_recipe;
+    // ✅ Check if recipe already exists with this unique_key_recipe
+    const existing = await client.query(
+      `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+      [recipe.unique_key]
+    );
 
-      // 2. Insert into DetailRecipe table
-      const detailResult = await client.query(
-        `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING "Id_detail_recipe"`,
-        [
-          detail_recipe.detail,
-          detail_recipe.time,
-          detail_recipe.rate,
-          detail_recipe.level,
-          detail_recipe.calories,
-          recipeId
-        ]
-      );
-      const detailId = detailResult.rows[0].Id_detail_recipe;
-
-      // 3. Insert ingredients into IngredientRecipe table
-      if (Array.isArray(ingredients) && ingredients.length > 0) {
-        await Promise.all(
-          ingredients.map((ingredient) =>
-            client.query(
-              `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
-            VALUES ($1, $2, $3, $4)`,
-              [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, detailId]
-            )
-          )
-        );
-      }
-
-      // 4. Insert steps into StepRecipe table
-      if (Array.isArray(steps) && steps.length > 0) {
-        await Promise.all(
-          steps.map((step) =>
-            client.query(
-              `INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
-            VALUES ($1, $2, $3, $4)`,
-              [step.detailStep, step.imageStep, step.timeStep, recipeId]
-            )
-          )
-        );
-      }
-
-      // 5. Insert reviews into ReviewRecipe table
-      if (Array.isArray(reviews) && reviews.length > 0) {
-        await Promise.all(
-          reviews.map((review) =>
-            client.query(
-              `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
-            VALUES ($1, $2, $3)`,
-              [review.detailReview, review.rateReview, recipeId]
-            )
-          )
-        );
-      }
-
-      // Commit the transaction
-      await client.query('COMMIT');
-      console.log("Recipe inserted successfully with ID:", recipeId);
-      callback(null, recipeId);
-    } catch (err) {
-      // Rollback the transaction in case of error
+    if (existing.rows.length > 0) {
+      console.log("❗️Recipe already exists, skipping insert:", recipe.unique_key);
       await client.query('ROLLBACK');
-      console.error("Error inserting recipe:", err);
-      callback(err);
+      return callback(null, existing.rows[0].Id_recipe);
     }
+
+    // 1. Insert into Recipe table
+    const recipeResult = await client.query(
+      `INSERT INTO "Recipe" ("Nom_Recipe", "Icon_recipe", "Fav_recipe", "unique_key_recipe", "Frk_user")
+       VALUES ($1, $2, $3, $4, $5) RETURNING "Id_recipe"`,
+      [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId]
+    );
+    const recipeId = recipeResult.rows[0].Id_recipe;
+
+    // 2. Insert into DetailRecipe table
+    const detailResult = await client.query(
+      `INSERT INTO "DetailRecipe" ("Dt_recipe", "Dt_recipe_time", "Rate_recipe", "Level_recipe", "Calories_recipe", "FRK_recipe")
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING "Id_detail_recipe"`,
+      [
+        detail_recipe.detail,
+        detail_recipe.time,
+        detail_recipe.rate,
+        detail_recipe.level,
+        detail_recipe.calories,
+        recipeId
+      ]
+    );
+    const detailId = detailResult.rows[0].Id_detail_recipe;
+
+    // 3. Insert ingredients
+    if (Array.isArray(ingredients) && ingredients.length > 0) {
+      await Promise.all(
+        ingredients.map((ingredient) =>
+          client.query(
+            `INSERT INTO "IngredientRecipe" ("Ingredient_recipe", "PoidIngredient_recipe", "unit", "FRK_detail_recipe")
+             VALUES ($1, $2, $3, $4)`,
+            [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, detailId]
+          )
+        )
+      );
+    }
+
+    // 4. Insert steps
+    if (Array.isArray(steps) && steps.length > 0) {
+      await Promise.all(
+        steps.map((step) =>
+          client.query(
+            `INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
+             VALUES ($1, $2, $3, $4)`,
+            [step.detailStep, step.imageStep, step.timeStep, recipeId]
+          )
+        )
+      );
+    }
+
+    // 5. Insert reviews
+    if (Array.isArray(reviews) && reviews.length > 0) {
+      await Promise.all(
+        reviews.map((review) =>
+          client.query(
+            `INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
+             VALUES ($1, $2, $3)`,
+            [review.detailReview, review.rateReview, recipeId]
+          )
+        )
+      );
+    }
+
+    // ✅ Commit the transaction
+    await client.query('COMMIT');
+    console.log("✅ Recipe inserted successfully with ID:", recipeId);
+    callback(null, recipeId);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("❌ Error inserting recipe:", err);
+    callback(err);
+  } finally {
+    client.release();
   }
-
-
+}
 
   static async getRecipesByConditions(conditions, callback) {
 
@@ -751,73 +762,77 @@ class Recipe {
 
 
   static async updateRecipeWithDetails(recipeData, callback) {
+  const client = await pool.connect();
 
-    try {
-      await pool.query("BEGIN"); // Start the transaction
+  try {
+    await client.query("BEGIN");
 
-      const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
+    const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
 
-      // Update Recipe
-      await pool.query(
-        `UPDATE "Recipe" 
-         SET "Nom_Recipe" = $1, "Fav_recipe" = $2
-         WHERE "unique_key_recipe" = $3`,
-        [recipe.name, recipe.fav, recipe.unique_key]
-      );
+    const uniqueKey = recipe.unique_key;
+    console.log("Unique Key for update:", uniqueKey);
 
-      const uniqueKey = recipe.unique_key;
-      console.log("Unique Key for update:", uniqueKey);
-      
+    // تحقق هل الوصفة موجودة
+    const recipeResult = await client.query(
+      `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+      [uniqueKey]
+    );
 
-      // Retrieve the recipe ID using the unique_key_recipe
-      const recipeResult = await pool.query(
-        `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
-        [uniqueKey]
-      );
+    let recipeId;
 
-      if (recipeResult.rows.length === 0) {
-        this.insertRecipeWithDetails(recipeData,callback);
-        //await pool.query("ROLLBACK");
-        //callback(null, uniqueKey);
-        return callback(new message("Recipe not found,creating new recipe : " + uniqueKey));
-      }
-
-      const recipeId = recipeResult.rows[0].Id_recipe;
-
-      // Update Detail_recipe
-      const resutdetail = await pool.query(
-        `UPDATE "DetailRecipe"
-         SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
-             "Level_recipe" = $4, "Calories_recipe" = $5
-         WHERE "FRK_recipe" = $6 RETURNING "Id_detail_recipe"`,
-        [
-          detail_recipe.detail,
-          detail_recipe.time,
-          detail_recipe.rate,
-          detail_recipe.level,
-          detail_recipe.calories,
-          recipeId,
-        ]
-      );
-      const detailId = resutdetail.rows[0].Id_detail_recipe;
-
-      // Update ingredients
-      await Recipe.updateIngredients(pool, ingredients, detailId);
-
-      // Update steps
-      await Recipe.updateSteps(pool, steps, recipeId);
-
-      // Commit transaction
-      await pool.query("COMMIT");
-
-      console.log("Recipe updated successfully with unique key:", uniqueKey);
-      callback(null, uniqueKey);
-    } catch (err) {
-      await pool.query("ROLLBACK");
-      console.error("Error updating recipe:", err);
-      callback(err);
+    if (recipeResult.rows.length === 0) {
+      console.log(`Recipe not found. Inserting instead: ${uniqueKey}`);
+      await client.query("ROLLBACK"); // إلغاء المعاملة الحالية
+      return this.insertRecipeWithDetails(recipeData, callback); // إدراج جديد والخروج
     }
+
+    recipeId = recipeResult.rows[0].Id_recipe; // ✅ تم إصلاح السطر
+
+    // تحديث جدول الوصفات
+    await client.query(
+      `UPDATE "Recipe" 
+       SET "Nom_Recipe" = $1, "Fav_recipe" = $2
+       WHERE "Id_recipe" = $3`,
+      [recipe.name, recipe.fav, recipeId]
+    );
+
+    // تحديث التفاصيل
+    const resutdetail = await client.query(
+      `UPDATE "DetailRecipe"
+       SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
+           "Level_recipe" = $4, "Calories_recipe" = $5
+       WHERE "FRK_recipe" = $6 RETURNING "Id_detail_recipe"`,
+      [
+        detail_recipe.detail,
+        detail_recipe.time,
+        detail_recipe.rate,
+        detail_recipe.level,
+        detail_recipe.calories,
+        recipeId,
+      ]
+    );
+
+    const detailId = resutdetail.rows[0].Id_detail_recipe;
+
+    // تحديث المكونات
+    await Recipe.updateIngredients(client, ingredients, detailId);
+
+    // تحديث الخطوات
+    await Recipe.updateSteps(client, steps, recipeId);
+
+    await client.query("COMMIT");
+
+    console.log("Recipe updated successfully with unique key:", uniqueKey);
+    callback(null, uniqueKey);
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error updating recipe:", err);
+    callback(err);
+  } finally {
+    client.release();
   }
+}
+
 
   static async updateIngredients(pool, ingredients, recipeId) {
     try {
