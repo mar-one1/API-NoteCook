@@ -745,69 +745,78 @@ static async insertRecipeWithDetails(recipeData, callback) {
   
 
   static async updateRecipeWithDetails(recipeData, callback) {
-    
-    try {
-      await pool.query("BEGIN"); // Start the transaction
-  
-      const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
-  
-      // Update Recipe
-      await pool.query(
-        `UPDATE "Recipe" 
-         SET "Nom_Recipe" = $1, "Fav_recipe" = $2
-         WHERE "unique_key_recipe" = $3`,
-        [recipe.name, recipe.fav, recipe.unique_key]
-      );
-  
-      const uniqueKey = recipe.unique_key;
-  
-      // Retrieve the recipe ID using the unique_key_recipe
-      const recipeResult = await pool.query(
-        `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
-        [uniqueKey]
-      );
-  
-      if (recipeResult.rows.length === 0) {
-        await pool.query("ROLLBACK");
-        return callback(new Error("Recipe not found"));
-      }
-  
-      const recipeId = recipeResult.rows[0].Id_recipe;
-  
-      // Update Detail_recipe
-      const resutdetail = await pool.query(
-        `UPDATE "DetailRecipe"
-         SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
-             "Level_recipe" = $4, "Calories_recipe" = $5
-         WHERE "FRK_recipe" = $6 RETURNING "Id_detail_recipe"`,
-        [
-          detail_recipe.detail,
-          detail_recipe.time,
-          detail_recipe.rate,
-          detail_recipe.level,
-          detail_recipe.calories,
-          recipeId,
-        ]
-      );
-      const detailId = resutdetail.rows[0].Id_detail_recipe;
-  
-      // Update ingredients
-      await Recipe.updateIngredients(pool, ingredients, detailId);
-  
-      // Update steps
-      await Recipe.updateSteps(pool, steps, recipeId);
-  
-      // Commit transaction
-      await pool.query("COMMIT");
-  
-      console.log("Recipe updated successfully with unique key:", uniqueKey);
-      callback(null, uniqueKey);
-    } catch (err) {
-      await pool.query("ROLLBACK");
-      console.error("Error updating recipe:", err);
-      callback(err);
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
+
+    const uniqueKey = recipe.unique_key;
+
+    // Check if recipe exists
+    const recipeResult = await client.query(
+      `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
+      [uniqueKey]
+    );
+
+    let recipeId;
+
+    if (recipeResult.rows.length === 0) {
+      // Recipe not found — rollback and insert as new
+      await client.query("ROLLBACK");
+      console.log(`Recipe with key ${uniqueKey} not found. Inserting instead.`);
+      return Recipe.insertRecipeWithDetails(recipeData, callback);
+    } else {
+      recipeId = recipeResult.rows[0].Id_recipe;
     }
+
+    // Update Recipe
+    await client.query(
+      `UPDATE "Recipe" 
+       SET "Nom_Recipe" = $1, "Fav_recipe" = $2
+       WHERE "Id_recipe" = $3`,
+      [recipe.name, recipe.fav, recipeId]
+    );
+
+    // Update DetailRecipe
+    const detailResult = await client.query(
+      `UPDATE "DetailRecipe"
+       SET "Dt_recipe" = $1, "Dt_recipe_time" = $2, "Rate_recipe" = $3, 
+           "Level_recipe" = $4, "Calories_recipe" = $5
+       WHERE "FRK_recipe" = $6
+       RETURNING "Id_detail_recipe"`,
+      [
+        detail_recipe.detail,
+        detail_recipe.time,
+        detail_recipe.rate,
+        detail_recipe.level,
+        detail_recipe.calories,
+        recipeId,
+      ]
+    );
+
+    const detailId = detailResult.rows[0].Id_detail_recipe;
+
+    // Update ingredients and steps
+    await Recipe.updateIngredients(client, ingredients, detailId);
+    await Recipe.updateSteps(client, steps, recipeId);
+
+    // Commit transaction
+    await client.query("COMMIT");
+
+    console.log("Recipe updated successfully with unique key:", uniqueKey);
+    callback(null, uniqueKey);
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Error updating recipe:", err);
+    callback(err);
+  } finally {
+    client.release();
   }
+}
+
+
   
   static async updateIngredients(pool, ingredients, recipeId) {
     try {
