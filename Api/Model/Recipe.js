@@ -176,17 +176,17 @@ class Recipe {
             );
             entry.reviews.add(
               JSON.stringify({
-                id: row.Id_review_recipe,
-                detailReview: row.Detail_review_recipe,
-                rateReview: row.Rate_review_recipe,
+                id: row.Id_Review_recipe,
+                detailReview: row.Detail_Review_recipe,
+                rateReview: row.Rate_Review_recipe,
               })
             );
             entry.steps.add(
               JSON.stringify({
-                id: row.Id_step_recipe,
-                detailStep: row.Detail_step_recipe,
-                imageStep: row.Image_step_recipe,
-                timeStep: row.Time_step_recipe,
+                id: row.Id_Step_recipe,
+                detailStep: row.Detail_Step_recipe,
+                imageStep: row.Image_Step_recipe,
+                timeStep: row.Time_Step_recipe,
               })
             );
             entry.favs.add(
@@ -326,7 +326,7 @@ class Recipe {
   static insertReviews(db, reviews, recipeId, callback) {
     try {
       const insertReview = db.prepare(
-        `INSERT INTO Review_recipe (Detail_review_recipe, Rate_review_recipe, FRK_recipe) VALUES (?, ?, ?)`
+        `INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)`
       );
       reviews.forEach((review) => {
         insertReview.run(
@@ -351,7 +351,7 @@ class Recipe {
   static insertSteps(db, steps, recipeId, callback) {
     try {
       const insertStep = db.prepare(
-        `INSERT INTO Step_recipe (Detail_step_recipe, Image_step_recipe, Time_step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
+        `INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
       );
       steps.forEach((step) => {
         insertStep.run(
@@ -399,8 +399,8 @@ class Recipe {
       Recipe.Nom_Recipe LIKE ? OR
       Detail_recipe.Dt_recipe LIKE ? OR
       Ingredient.Ingredient_recipe LIKE ? OR
-      Step_recipe.Detail_step_recipe LIKE ? OR
-      Review_recipe.Detail_review_recipe LIKE ?
+      Step_recipe.Detail_Step_recipe LIKE ? OR
+      Review_recipe.Detail_Review_recipe LIKE ?
     )`;
 
         // Add searchText parameters
@@ -538,8 +538,8 @@ class Recipe {
           reviewSet.add(
             JSON.stringify({
               id: row.Id_review_recipe,
-              detailReview: row.Detail_review_recipe,
-              rateReview: row.Rate_review_recipe,
+              detailReview: row.Detail_Review_recipe,
+              rateReview: row.Rate_Review_recipe,
               recipeId: row.FRK_recipe,
             })
           );
@@ -547,9 +547,9 @@ class Recipe {
           stepSet.add(
             JSON.stringify({
               id: row.Id_Step_recipe,
-              detailStep: row.Detail_step_recipe,
-              imageStep: row.Image_step_recipe,
-              timeStep: row.Time_step_recipe,
+              detailStep: row.Detail_Step_recipe,
+              imageStep: row.Image_Step_recipe,
+              timeStep: row.Time_Step_recipe,
               recipeId: row.FRK_recipe,
             })
           );
