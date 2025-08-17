@@ -26,7 +26,7 @@ authRouter.post("/login", async (req, res) => {
     const { rows } = await client.query(query, [username]);
 
     if (rows.length === 0) {
-      return res.status(406).json({ error: "User not found" });
+      return res.status(401).json({ error: "User not found" });
     }
 
     const user = rows[0];
