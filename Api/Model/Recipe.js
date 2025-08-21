@@ -13,7 +13,7 @@ class Recipe {
   }
 
   static createRecipe(name, icon, fav, unique_key, userId, callback) {
-    
+
     try {
       db.run(
         "INSERT INTO Recipe (Nom_Recipe, Icon_recipe, Fav_recipe, unique_key_recipe, Frk_user) VALUES (?, ?, ?, ?, ?)",
@@ -27,9 +27,9 @@ class Recipe {
           callback(null, newRecipe);
         }
       );
-      
+
     } catch (err) {
-      
+
       console.error("Error create Recipe ", err);
       callback(err, null);
     }
@@ -41,28 +41,28 @@ class Recipe {
       throw new Error("Callback function is required");
     }
 
-    
+
     try {
       db.all("SELECT Icon_recipe FROM Recipe", [], (err, rows) => {
         if (err) {
-          
+
           console.error("Error getting all image paths from database:", err);
           return callback(err, null);
         }
         const paths = rows.map((row) => row.Icon_recipe);
         console.log("path geting form db :" + paths);
-        
+
         callback(null, paths);
       });
     } catch (err) {
-      
+
       console.error("Error getting all image paths from database:", err);
       callback(err, null);
     }
   }
 
   static getRecipeById(id, callback) {
-    
+
     db.get(
       'SELECT * FROM Recipe WHERE Id_recipe = ?',
       [id],
@@ -86,20 +86,20 @@ class Recipe {
         callback(null, recipe);
       }
     );
-    
+
   }
 
   static getAllFullRecipesByUsername(username, callback) {
-    
+
     try {
       UserModel.getUserByUsername(username, (err, user) => {
         if (err) {
-          
+
           callback(err, null);
           return;
         }
         if (!user) {
-          
+
           callback(null, null); // user not found
           return;
         }
@@ -123,7 +123,7 @@ class Recipe {
 
         db.all(sql, [id], (err, rows) => {
           if (err) {
-            
+
             callback(err, null);
             return;
           }
@@ -203,7 +203,7 @@ class Recipe {
           }));
 
           callback(null, uniqueEntries);
-          
+
         });
       });
     } catch (err) {
@@ -212,166 +212,115 @@ class Recipe {
     }
   }
 
+
+
   static insertRecipeWithDetails(recipeData, callback) {
-    
+    const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
 
     db.serialize(() => {
-      db.run("BEGIN TRANSACTION");
+      db.run("BEGIN");
 
-      try {
-        const { recipe, detail_recipe, ingredients, reviews, steps } =
-          recipeData;
+      // 1. Check if recipe exists
+      db.get(
+        `SELECT "Id_recipe" FROM "Recipe" WHERE "unique_key_recipe" = ?`,
+        [recipe.unique_key],
+        (err, existing) => {
+          if (err) {
+            db.run("ROLLBACK");
+            return callback(err);
+          }
 
-        db.run(
-          `INSERT INTO Recipe (Nom_Recipe, Icon_recipe, Fav_recipe, unique_key_recipe, Frk_user) VALUES (?, ?, ?, ?, ?)`,
-          [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId],
-          function (err) {
-            if (err) {
-              db.run("ROLLBACK");
-              console.error("Error inserting recipe:", err);
-              return callback(err);
-            }
+          if (existing) {
+            console.log("❗ Recipe already exists:", recipe.unique_key);
+            db.run("ROLLBACK");
+            return callback(null, existing.Id_recipe);
+          }
 
-            const recipeId = this.lastID;
+          // 2. Insert Recipe
+          db.run(
+            `INSERT INTO "Recipe" ("Nom_Recipe","Icon_recipe","Fav_recipe","unique_key_recipe","Frk_user")
+           VALUES (?,?,?,?,?)`,
+            [recipe.name, recipe.icon, recipe.fav, recipe.unique_key, recipe.userId],
+            function (err) {
+              if (err) {
+                db.run("ROLLBACK");
+                return callback(err);
+              }
 
-            db.run(
-              `INSERT INTO Detail_recipe (Dt_recipe, Dt_recipe_time, Rate_recipe, Level_recipe, Calories_recipe, FRK_recipe) VALUES (?, ?, ?, ?, ?, ?)`,
-              [
-                detail_recipe.detail,
-                detail_recipe.time,
-                detail_recipe.rate,
-                detail_recipe.level,
-                detail_recipe.calories,
-                recipeId,
-              ],
-              function (err) {
-                if (err) {
-                  db.run("ROLLBACK");
-                  console.error("Error inserting detail recipe:", err);
-                  return callback(err);
-                }
+              const recipeId = this.lastID;
 
-                // Insert ingredients
-                Recipe.insertIngredients(db, ingredients, recipeId, (err) => {
+              // 3. Insert DetailRecipe
+              db.run(
+                `INSERT INTO "Detail_recipe" ("Dt_recipe","Dt_recipe_time","Rate_recipe","Level_recipe","Calories_recipe","FRK_recipe")
+               VALUES (?,?,?,?,?,?)`,
+                [
+                  detail_recipe.detail,
+                  detail_recipe.time,
+                  detail_recipe.rate,
+                  detail_recipe.level,
+                  detail_recipe.calories,
+                  recipeId,
+                ],
+                function (err) {
                   if (err) {
                     db.run("ROLLBACK");
-                    console.error("Error inserting ingredients:", err);
                     return callback(err);
                   }
 
-                  // Insert steps
-                  Recipe.insertSteps(db, steps, recipeId, (err) => {
+                  const detailId = this.lastID;
+
+                  // 4. Insert Ingredients
+                  if (Array.isArray(ingredients)) {
+                    ingredients.forEach((ingredient) => {
+                      db.run(
+                        `INSERT INTO "Ingredient" ("Ingredient_recipe","PoidIngredient_recipe","Unite","FRK_recipe")
+                       VALUES (?,?,?,?)`,
+                        [ingredient.ingredient, ingredient.poidIngredient, ingredient.unite, recipeId]
+                      );
+                    });
+                  }
+
+                  // 5. Insert Steps
+                  if (Array.isArray(steps)) {
+                    steps.forEach((step) => {
+                      db.run(
+                        `INSERT INTO "Step_recipe" ("Detail_Step_recipe","Image_Step_recipe","Time_Step_recipe","FRK_recipe")
+                       VALUES (?,?,?,?)`,
+                        [step.detailStep, step.imageStep, step.timeStep, recipeId]
+                      );
+                    });
+                  }
+
+                  // 6. Insert Reviews
+                  if (Array.isArray(reviews)) {
+                    reviews.forEach((review) => {
+                      db.run(
+                        `INSERT INTO "Review_recipe" ("Detail_Review_recipe","Rate_Review_recipe","FRK_recipe")
+                       VALUES (?,?,?)`,
+                        [review.detailReview, review.rateReview, recipeId]
+                      );
+                    });
+                  }
+
+                  db.run("COMMIT", (err) => {
                     if (err) {
-                      db.run("ROLLBACK");
-                      console.error("Error inserting steps:", err);
+                      console.error("❌ Commit failed:", err);
                       return callback(err);
                     }
-
-                    // Commit transaction
-                    db.run("COMMIT", function (err) {
-                      if (err) {
-                        console.error("Error committing transaction:", err);
-                        return callback(err);
-                      }
-                      console.log(
-                        "Recipe inserted successfully with ID:",
-                        recipeId
-                      );
-                      callback(null, recipeId);
-                    });
+                    console.log("✅ Recipe inserted with ID:", recipeId);
+                    callback(null, recipeId);
                   });
-                });
-              }
-            );
-          }
-        );
-      } catch (err) {
-        db.run("ROLLBACK");
-        console.error("Error creating recipe:", err);
-        callback(err);
-      }
+                }
+              );
+            }
+          );
+        }
+      );
     });
   }
 
-  static insertIngredients(db, ingredients, recipeId, callback) {
-    try {
-      const insertIngredient = db.prepare(
-        `INSERT INTO Ingredient (Ingredient_recipe, PoidIngredient_recipe, Unite, FRK_recipe) VALUES (?, ?, ?, ?)`
-      );
-      ingredients.forEach((ingredient) => {
-        insertIngredient.run(
-          ingredient.ingredient,
-          ingredient.poidIngredient,
-          ingredient.unite,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertIngredient.finalize(callback); // Return from finalize to ensure it's not called multiple times
-    } catch (err) {
-      console.error("Error insert Ingredients", err);
-      callback(err, null);
-    }
-  }
-
-  static insertReviews(db, reviews, recipeId, callback) {
-    try {
-      const insertReview = db.prepare(
-        `INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)`
-      );
-      reviews.forEach((review) => {
-        insertReview.run(
-          review.detailReview,
-          review.rateReview,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertReview.finalize(callback); // Return from finalize to ensure it's not called multiple times
-    } catch (err) {
-      console.error("Error insert Reviews", err);
-      callback(err, null);
-    }
-  }
-
-  static insertSteps(db, steps, recipeId, callback) {
-    try {
-      const insertStep = db.prepare(
-        `INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
-      );
-      steps.forEach((step) => {
-        insertStep.run(
-          step.detailStep,
-          step.imageStep,
-          step.timeStep,
-          recipeId,
-          (err) => {
-            if (err) {
-              callback(err);
-              return; // Return to avoid further iterations
-            }
-          }
-        );
-      });
-      insertStep.finalize(callback); // Return from finalize to ensure it's not called multiple times
-    } catch (err) {
-      console.error("Error insert Steps", err);
-      callback(err, null);
-    }
-  }
-
   static getRecipesByConditions(conditions, callback) {
-    
+
     try {
       let query = `
     SELECT 
@@ -425,7 +374,7 @@ class Recipe {
       db.all(query, params, (err, rows) => {
         if (err) {
           callback(err);
-          
+
           return;
         }
         const recipeSet = new Set();
@@ -445,17 +394,17 @@ class Recipe {
         // Convert the set back to an array of recipes
         const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
         callback(null, uniqueRecipes);
-        
+
       });
     } catch (err) {
-      
+
       console.error("Error getting recipes by conditions:", err);
       callback(err, null);
     }
   }
 
   static getFullRecipeById(id, callback) {
-    
+
     try {
       const sql = `
     SELECT Recipe.*,User.*, Detail_recipe.*, Ingredient.*, Step_recipe.*,Review_recipe.*
@@ -566,9 +515,9 @@ class Recipe {
           steps,
         });
       });
-      
+
     } catch (err) {
-      
+
       console.error("Error full retrieving recipes by id recipe: " + id, err);
       callback(err, null);
     }
@@ -602,7 +551,7 @@ class Recipe {
 
 
   static async UpdateRecipeImage(unique, imagebyte, callback) {
-    
+
     try {
       // Retrieve the recipe ID using the unique_key_recipe
       db.get(
@@ -636,16 +585,16 @@ class Recipe {
           );
         }
       )
-      
+
     } catch (err) {
-      
+
       console.error("Error Update Recipe Image : " + unique, err);
       callback(err, null);
     }
   }
 
   static getAllRecipes(callback) {
-    
+
     try {
       db.all("SELECT * FROM Recipe", (err, rows) => {
         if (err) {
@@ -664,16 +613,16 @@ class Recipe {
         });
         callback(null, recipes);
       });
-      
+
     } catch (err) {
-      
+
       console.error("Error get All Recipes", err);
       callback(err, null);
     }
   }
 
   static getUserByRecipeId(recipeId, callback) {
-    
+
     try {
       db.get(
         "SELECT Frk_user FROM Recipe WHERE Id_recipe = ?",
@@ -692,16 +641,16 @@ class Recipe {
           UserModel.getUserById(userId, callback);
         }
       );
-      
+
     } catch (err) {
-      
+
       console.error("Error retrieving get User By Recipe Id: " + recipeId, err);
       callback(err, null);
     }
   }
 
   static getRecipesByUserId(userId, callback) {
-    
+
     db.all("SELECT * FROM Recipe WHERE Frk_user = ?", [userId], (err, rows) => {
       if (err) {
         callback(err, null);
@@ -719,11 +668,11 @@ class Recipe {
       });
       callback(null, recipes);
     });
-    
+
   }
 
   static getRecipesByUsernameUser(username, callback) {
-    
+
     console.log(username);
     UserModel.getUserByUsername(username, (err, user) => {
       if (err) {
@@ -754,13 +703,13 @@ class Recipe {
         });
         callback(null, recipes);
       });
-      
+
     });
   }
 
   static searchRecipes(Nom_Recipe, callback) {
     const fuzzyTerm = `%${Nom_Recipe}%`;
-    
+
     db.all(
       "SELECT * FROM Recipe WHERE Nom_Recipe LIKE ?",
       [fuzzyTerm],
@@ -782,14 +731,14 @@ class Recipe {
         callback(null, recipes);
       }
     );
-    
+
   }
 
   static updateRecipeWithDetails(recipeData, callback) {
-    
+
 
     db.serialize(() => {
-      db.run("BEGIN TRANSACTION");
+      db.run("BEGIN IMMEDIATE");
 
       try {
         const { recipe, detail_recipe, ingredients, reviews, steps } = recipeData;
@@ -821,7 +770,7 @@ class Recipe {
 
                 const recipeId = row.Id_recipe;
                 console.log(recipeId);
-                
+
 
                 // Update detail recipe
                 db.run(
@@ -842,7 +791,7 @@ class Recipe {
                       console.error("Error updating detail recipe:", err);
                       return callback(err);
                     }
-                    
+
                     // Update ingredients
                     Recipe.updateIngredients(db, ingredients, recipeId, (err) => {
                       if (err) {
@@ -927,7 +876,7 @@ class Recipe {
 
 
   static deleteRecipe(recipeId, callback) {
-    
+
     db.run(
       "DELETE FROM Recipe WHERE Id_recipe = ?",
       [recipeId],
@@ -943,7 +892,7 @@ class Recipe {
         callback(null, true); // Recipe deleted successfully
       }
     );
-    
+
   }
 
   // Add a method to get the User associated with this Recipe
