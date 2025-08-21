@@ -1,10 +1,6 @@
-const sqlite3 = require("sqlite3").verbose();
+const db = require("../../database");
 const UserModel = require("./User"); // Import the User model
 const DetailRecipeModel = require("./Detail_recipe"); // Import the User model
-const IngredientModel = require("./Ingredient"); // Import the User model
-const ReviewModel = require("./Review_recipe"); // Import the User model
-const StepModel = require("./Step_recipe"); // Import the User model
-const imageHelper = require("../Router/ImageHelper"); // Import the User model
 const fs = require("fs");
 class Recipe {
   constructor(id, name, icon, fav, unique_key, userId) {
@@ -17,7 +13,7 @@ class Recipe {
   }
 
   static createRecipe(name, icon, fav, unique_key, userId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       db.run(
         "INSERT INTO Recipe (Nom_Recipe, Icon_recipe, Fav_recipe, unique_key_recipe, Frk_user) VALUES (?, ?, ?, ?, ?)",
@@ -31,9 +27,9 @@ class Recipe {
           callback(null, newRecipe);
         }
       );
-      db.close();
+      
     } catch (err) {
-      db.close();
+      
       console.error("Error create Recipe ", err);
       callback(err, null);
     }
@@ -45,28 +41,28 @@ class Recipe {
       throw new Error("Callback function is required");
     }
 
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       db.all("SELECT Icon_recipe FROM Recipe", [], (err, rows) => {
         if (err) {
-          db.close();
+          
           console.error("Error getting all image paths from database:", err);
           return callback(err, null);
         }
         const paths = rows.map((row) => row.Icon_recipe);
         console.log("path geting form db :" + paths);
-        db.close();
+        
         callback(null, paths);
       });
     } catch (err) {
-      db.close();
+      
       console.error("Error getting all image paths from database:", err);
       callback(err, null);
     }
   }
 
   static getRecipeById(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.get(
       'SELECT * FROM Recipe WHERE Id_recipe = ?',
       [id],
@@ -90,20 +86,20 @@ class Recipe {
         callback(null, recipe);
       }
     );
-    db.close();
+    
   }
 
   static getAllFullRecipesByUsername(username, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       UserModel.getUserByUsername(username, (err, user) => {
         if (err) {
-          db.close();
+          
           callback(err, null);
           return;
         }
         if (!user) {
-          db.close();
+          
           callback(null, null); // user not found
           return;
         }
@@ -127,7 +123,7 @@ class Recipe {
 
         db.all(sql, [id], (err, rows) => {
           if (err) {
-            db.close();
+            
             callback(err, null);
             return;
           }
@@ -207,7 +203,7 @@ class Recipe {
           }));
 
           callback(null, uniqueEntries);
-          db.close();
+          
         });
       });
     } catch (err) {
@@ -217,7 +213,7 @@ class Recipe {
   }
 
   static insertRecipeWithDetails(recipeData, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
 
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
@@ -375,7 +371,7 @@ class Recipe {
   }
 
   static getRecipesByConditions(conditions, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       let query = `
     SELECT 
@@ -429,7 +425,7 @@ class Recipe {
       db.all(query, params, (err, rows) => {
         if (err) {
           callback(err);
-          db.close();
+          
           return;
         }
         const recipeSet = new Set();
@@ -449,17 +445,17 @@ class Recipe {
         // Convert the set back to an array of recipes
         const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
         callback(null, uniqueRecipes);
-        db.close();
+        
       });
     } catch (err) {
-      db.close();
+      
       console.error("Error getting recipes by conditions:", err);
       callback(err, null);
     }
   }
 
   static getFullRecipeById(id, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       const sql = `
     SELECT Recipe.*,User.*, Detail_recipe.*, Ingredient.*, Step_recipe.*,Review_recipe.*
@@ -570,9 +566,9 @@ class Recipe {
           steps,
         });
       });
-      db.close();
+      
     } catch (err) {
-      db.close();
+      
       console.error("Error full retrieving recipes by id recipe: " + id, err);
       callback(err, null);
     }
@@ -606,7 +602,7 @@ class Recipe {
 
 
   static async UpdateRecipeImage(unique, imagebyte, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       // Retrieve the recipe ID using the unique_key_recipe
       db.get(
@@ -640,16 +636,16 @@ class Recipe {
           );
         }
       )
-      db.close();
+      
     } catch (err) {
-      db.close();
+      
       console.error("Error Update Recipe Image : " + unique, err);
       callback(err, null);
     }
   }
 
   static getAllRecipes(callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       db.all("SELECT * FROM Recipe", (err, rows) => {
         if (err) {
@@ -668,16 +664,16 @@ class Recipe {
         });
         callback(null, recipes);
       });
-      db.close();
+      
     } catch (err) {
-      db.close();
+      
       console.error("Error get All Recipes", err);
       callback(err, null);
     }
   }
 
   static getUserByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     try {
       db.get(
         "SELECT Frk_user FROM Recipe WHERE Id_recipe = ?",
@@ -696,16 +692,16 @@ class Recipe {
           UserModel.getUserById(userId, callback);
         }
       );
-      db.close();
+      
     } catch (err) {
-      db.close();
+      
       console.error("Error retrieving get User By Recipe Id: " + recipeId, err);
       callback(err, null);
     }
   }
 
   static getRecipesByUserId(userId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     db.all("SELECT * FROM Recipe WHERE Frk_user = ?", [userId], (err, rows) => {
       if (err) {
         callback(err, null);
@@ -723,11 +719,11 @@ class Recipe {
       });
       callback(null, recipes);
     });
-    db.close();
+    
   }
 
   static getRecipesByUsernameUser(username, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     console.log(username);
     UserModel.getUserByUsername(username, (err, user) => {
       if (err) {
@@ -758,13 +754,13 @@ class Recipe {
         });
         callback(null, recipes);
       });
-      db.close();
+      
     });
   }
 
   static searchRecipes(Nom_Recipe, callback) {
     const fuzzyTerm = `%${Nom_Recipe}%`;
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     db.all(
       "SELECT * FROM Recipe WHERE Nom_Recipe LIKE ?",
       [fuzzyTerm],
@@ -786,11 +782,11 @@ class Recipe {
         callback(null, recipes);
       }
     );
-    db.close();
+    
   }
 
   static updateRecipeWithDetails(recipeData, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
 
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
@@ -931,7 +927,7 @@ class Recipe {
 
 
   static deleteRecipe(recipeId, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
+    
     db.run(
       "DELETE FROM Recipe WHERE Id_recipe = ?",
       [recipeId],
@@ -947,7 +943,7 @@ class Recipe {
         callback(null, true); // Recipe deleted successfully
       }
     );
-    db.close();
+    
   }
 
   // Add a method to get the User associated with this Recipe

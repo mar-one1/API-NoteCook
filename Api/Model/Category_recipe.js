@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
+const db = require("../../database");
 
 class Categoryrecipe {
   constructor(id, icon, detail_ct) {
@@ -8,7 +8,7 @@ class Categoryrecipe {
   }
 
   static createCategoryRecipe(icon, detail_ct, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     try {
       db.run(
         'INSERT INTO Categorie_recipe (Icon_Categorie_recipe, Detail_Categorie_recipe) VALUES (?, ?)',
@@ -29,12 +29,12 @@ class Categoryrecipe {
     } catch (err) {
       callback(err);
     } finally {
-      db.close();
+      
     }
   }
 
   static getAllCategoryRecipes(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     try {
       db.all('SELECT * FROM Categorie_recipe', (err, rows) => {
         if (err) {
@@ -53,12 +53,12 @@ class Categoryrecipe {
     } catch (err) {
       callback(err, null);
     } finally {
-      db.close();
+      
     }
   }
 
   static getCategoryRecipeById(categoryId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     try {
       db.get(
         'SELECT * FROM Categorie_recipe WHERE Id_Categorie_recipe = ?',
@@ -83,12 +83,12 @@ class Categoryrecipe {
     } catch (err) {
       callback(err, null);
     } finally {
-      db.close();
+      
     }
   }
 
   static updateCategoryRecipe(categoryId, icon, detail_ct, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     try {
       db.run(
         'UPDATE Categorie_recipe SET Icon_Categorie_recipe = ?, Detail_Categorie_recipe = ? WHERE Id_Categorie_recipe = ?',
@@ -113,12 +113,12 @@ class Categoryrecipe {
     } catch (err) {
       callback(err);
     } finally {
-      db.close();
+      
     }
   }
 
   static deleteCategoryRecipe(categoryId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     try {
       db.run(
         'DELETE FROM Categorie_recipe WHERE Id_Categorie_recipe = ?',
@@ -138,12 +138,12 @@ class Categoryrecipe {
     } catch (err) {
       callback(err);
     } finally {
-      db.close();
+      
     }
   }
 
   static deleteCategoryRecipes(categoryIds, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     const placeholders = categoryIds.map(() => '?').join(',');
     const query = `DELETE FROM Categorie_recipe WHERE Id_Categorie_recipe IN (${placeholders})`;
 
@@ -158,7 +158,7 @@ class Categoryrecipe {
     } catch (err) {
       callback(err);
     } finally {
-      db.close();
+      
     }
   }
 }

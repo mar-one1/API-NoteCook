@@ -1,5 +1,3 @@
-const sqlite3 = require('sqlite3').verbose();
-const Recipe = require('../Model/Recipe'); // Import the Recipe model
 
 class ReviewRecipe {
   constructor(id, detailReview, rateReview, recipeId) {
@@ -10,7 +8,7 @@ class ReviewRecipe {
   }
 
   static createReviewRecipe(detailReview, rateReview, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
       'INSERT INTO Review_recipe (Detail_Review_recipe, Rate_Review_recipe, FRK_recipe) VALUES (?, ?, ?)',
       [detailReview, rateReview, recipeId],
@@ -28,11 +26,11 @@ class ReviewRecipe {
         callback(null, newReviewRecipe);
       }
     );
-    db.close();
+    
   }
 
   static getAllReviewRecipes(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.all('SELECT * FROM Review_recipe', (err, rows) => {
       if (err) {
         callback(err, null);
@@ -48,7 +46,7 @@ class ReviewRecipe {
       });
       callback(null, reviewRecipes);
     });
-    db.close();
+    
   }
 
 
@@ -56,7 +54,7 @@ class ReviewRecipe {
 
 
   static getReviewsByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.all(
       'SELECT * FROM Review_recipe WHERE FRK_recipe = ?',
       [recipeId],
@@ -76,11 +74,11 @@ class ReviewRecipe {
         callback(null, reviews);
       }
     );
-    db.close();
+    
   }
 
 static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
+  
   db.run(
     'UPDATE Review_recipe SET Detail_Review_recipe = ?, Rate_Review_recipe = ?, FRK_recipe = ? WHERE Id_Review_recipe = ?',
     [detailReview, rateReview, recipeId, reviewId],
@@ -102,11 +100,11 @@ static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback
       callback(null, updatedReviewRecipe);
     }
   );
-  db.close();
+  
 }
 
 static deleteReviewRecipe(reviewId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
+  
   db.run(
     'DELETE FROM Review_recipe WHERE Id_Review_recipe = ?',
     [reviewId],
@@ -122,7 +120,7 @@ static deleteReviewRecipe(reviewId, callback) {
       callback(null, true); // Review recipe deleted successfully
     }
   );
-  db.close();
+  
 }
 }
 

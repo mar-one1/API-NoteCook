@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
+const db = require("../../database");
 const RecipeModel = require('./Recipe'); // Import the Recipe model
 
 class DetailRecipe {
@@ -13,7 +13,7 @@ class DetailRecipe {
   }
 
   static createDetailRecipe(detail, time, rate, level, calories, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
       'INSERT INTO Detail_recipe (Dt_recipe, Dt_recipe_time, Rate_recipe, Level_recipe, Calories_recipe, FRK_recipe) VALUES (?, ?, ?, ?, ?, ?)',
       [detail, time, rate, level, calories, recipeId],
@@ -34,11 +34,11 @@ class DetailRecipe {
         callback(null, newDetailRecipe);
       }
     );
-    db.close();
+    
   }
 
   static getDetailRecipeById(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.get(
       'SELECT * FROM Detail_recipe WHERE Id_Detail_recipe = ?',
       [id],
@@ -63,10 +63,10 @@ class DetailRecipe {
         callback(null, detailRecipe);
       }
     );
-    db.close();
+    
   }
   static getDetailRecipeByfkRecipe(FK, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.get(
       'SELECT * FROM Detail_recipe WHERE FRK_recipe = ?',
       [FK],
@@ -92,11 +92,11 @@ class DetailRecipe {
         callback(null, detailRecipe);
       }
     );
-    db.close();
+    
   }
 
   static getRecipeByDetailrecipeId(detailRecipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.get(
       'SELECT FRK_recipe FROM Detail_recipe WHERE Id_Detail_recipe = ?',
       [detailRecipeId],
@@ -114,7 +114,7 @@ class DetailRecipe {
         RecipeModel.getRecipeById(recipeId, callback);
       }
     );
-    db.close();
+    
   }
 
   // Add a method to get the associated Recipe for this DetailRecipe

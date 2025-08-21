@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
+const db = require("../../database");
 
 class Produit {
   constructor(id, name, weight) {
@@ -8,7 +8,7 @@ class Produit {
   }
 
   static createProduit(name, weight, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
       'INSERT INTO Produit (Produit, PoidProduit) VALUES (?, ?)',
       [name, weight],
@@ -21,15 +21,15 @@ class Produit {
         callback(null, newProduit);
       }
     );
-    db.close();
+    
   }
 
   static getAllProduits(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
 
     db.all('SELECT * FROM Produit', (err, rows) => {
       if (err) {
-        db.close();
+        
         return callback(err, null);
       }
 
@@ -37,14 +37,14 @@ class Produit {
         return new Produit(row.Id_Produit, row.Produit, row.PoidProduit);
       });
 
-      db.close();
+      
       callback(null, produits);
     });
   }
 
 
   static getProduitById(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.get(
       'SELECT * FROM Produit WHERE Id_Produit = ?',
       [id],
@@ -61,11 +61,11 @@ class Produit {
         callback(null, produit);
       }
     );
-    db.close();
+    
   }
 
   static updateProduit(id, name, weight, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
       'UPDATE Produit SET Produit = ?, PoidProduit = ? WHERE Id_Produit = ?',
       [name, weight, id],
@@ -82,11 +82,11 @@ class Produit {
         callback(null, updatedProduit);
       }
     );
-    db.close();
+    
   }
 
   static deleteProduit(id, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
       'DELETE FROM Produit WHERE Id_Produit = ?',
       [id],
@@ -102,7 +102,7 @@ class Produit {
         callback(null, true); // Produit deleted successfully
       }
     );
-    db.close();
+    
   }
 
   // ... (Other methods)
