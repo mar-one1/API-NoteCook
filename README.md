@@ -55,7 +55,7 @@ npm run dev
 NODE_ENV=production npm start
 ```
 
-> Server starts on: `http://127.0.0.1:3001`
+> Server starts on: `http://127.0.0.1:3000`
 
 ---
 

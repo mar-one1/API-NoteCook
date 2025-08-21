@@ -3,7 +3,7 @@ const app = express();
 const { Pool } = require('pg'); // PostgreSQL client
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
 const cors = require('cors');
