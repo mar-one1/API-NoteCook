@@ -1,12 +1,11 @@
-const { Pool } = require('pg')
- 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL + "?sslmode=require",
-})
+const sqlite3 = require("sqlite3").verbose();
 
-pool.connect((err) => {
-    if (err) throw err
-    console.log("Connect to PostgreSQL successfully!")
-})
+const db = new sqlite3.Database("./DB_Notebook.db", (err) => {
+  if (err) {
+    console.error("❌ Could not connect to database", err);
+  } else {
+    console.log("✅ Connected to SQLite database");
+  }
+});
 
-module.exports = pool
+module.exports = db;

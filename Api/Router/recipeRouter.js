@@ -210,13 +210,30 @@ router.get("/search/nom", (req, res) => {
 router.put('/', (req, res) => {
   const recipeData = req.body;
 
-  Recipe.updateRecipeWithDetails(recipeData, (err, recipeId) => {
+  Recipe.checkexist(recipeData, (err, result) => {
     if (err) {
-      return res.status(500).json({ error: 'Failed to update recipe' });
+      return res.status(500).json({ error: 'Failed to check recipe' });
     }
-    res.json(recipeId);
+
+    if (result.status === 200) {
+      Recipe.updateRecipeWithDetails(recipeData, (err, recipeId) => {
+        if (err) {
+          return res.status(500).json({ error: 'Failed to update recipe' });
+        }
+        return res.status(200).json({ message: 'Recipe updated', recipeId });
+      });
+
+    } else if (result.status === 201) {
+      Recipe.insertRecipeWithDetails(recipeData, (err, recipeId) => {
+        if (err) {
+          return res.status(500).json({ error: 'Failed to insert recipe' });
+        }
+        return res.status(201).json({ message: 'Recipe created', recipeId });
+      });
+    }
   });
 });
+
 
 router.delete('/delete/:path', (req, res) => {
   const pathimage = req.params.path;

@@ -1,7 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
-
-// Connect to the SQLite database
-const db = new sqlite3.Database('DB_Notebook.db');
+const db = require("../../database");
 
 const Favorite = {
     create: (FRK_user, FRK_recipe, callback) => {

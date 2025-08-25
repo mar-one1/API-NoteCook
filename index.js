@@ -3,8 +3,9 @@ const app = express();
 const sqlite3 = require('sqlite3').verbose();
 const http = require('http');
 const server = require('http').createServer(app);
+const fs = require("fs");
+const db = require("./database");
 const socketIo = require('socket.io');
-const db = new sqlite3.Database('DB_Notebook.db'); //database file name
 const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 const swaggerSetup = require('./Api/swagger');
@@ -55,7 +56,6 @@ app.use(bodyParser.json());
 
 // Initialize Swagger documentation
 swaggerSetup(app);
-
 
 app.use('/users', usersRouter);
 app.use('/api/chat', chatRoutes);
@@ -155,7 +155,6 @@ app.get('/isUserConnected/:userId', (req, res) => {
   }
 });
 const path = require('path');
-const fs = require('fs');
 db.serialize(() => {
   db.run('PRAGMA foreign_keys = ON'); // Enable foreign key support (optional)
 
@@ -167,7 +166,7 @@ db.serialize(() => {
 
       // Initialize SQLite database
       // Read and run schema.sql
-      const schemaPath = path.join(__dirname, './sqliteedbreate.sql');
+      const schemaPath = path.join(__dirname, './sqlDBcreate.sql');
       const schema = fs.readFileSync(schemaPath, 'utf8');
 
       db.exec(schema, (err) => {

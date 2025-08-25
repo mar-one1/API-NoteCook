@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
 const user = require("../Model/User");
+const db = require("../../database");
 // Secret key for JWT token (change this to a secure value in production)
 const secretKey = process.env.JWT_SECRET;
 const authRouter = express.Router();
@@ -27,7 +28,6 @@ authRouter.post("/login", (req, res) => {
   console.log(username);
   console.log(password);
   // Find the user in the database
-  const db = new sqlite3.Database("DB_Notebook.db");
   db.get(
     "SELECT * FROM User WHERE username = ?",
     [username],
@@ -67,7 +67,7 @@ authRouter.post("/login", (req, res) => {
 
         res.status(200).json({ message: "Authentication successful", token });
       });
-      db.close();
+    
     }
   );
 });

@@ -11,9 +11,9 @@ class StepRecipe {
   }
 
   static createStepRecipe(detailStep, imageStep, timeStep, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
-      'INSERT INTO Step_recipe (Detail_step_recipe, Image_step_recipe, Time_step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)',
+      'INSERT INTO Step_recipe (Detail_Step_recipe, Image_Step_recipe, Time_Step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)',
       [detailStep, imageStep, timeStep, recipeId],
       function (err) {
         if (err) {
@@ -30,11 +30,11 @@ class StepRecipe {
         callback(null, newStepRecipe);
       }
     );
-    db.close();
+    
   }
 
   static getAllStepRecipes(callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.all('SELECT * FROM Step_recipe', (err, rows) => {
       if (err) {
         callback(err, null);
@@ -51,11 +51,11 @@ class StepRecipe {
       });
       callback(null, stepRecipes);
     });
-    db.close();
+    
   }
 
   static getStepsByRecipeId(recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.all(
       'SELECT * FROM Step_recipe WHERE FRK_recipe = ?',
       [recipeId],
@@ -76,13 +76,13 @@ class StepRecipe {
         callback(null, steps);
       }
     );
-    db.close();
+    
   }
 
   static updateStepRecipe(stepId, detailStep, imageStep, timeStep, recipeId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
-      'UPDATE Step_recipe SET Detail_Step_recipe = ?, Image_step_recipe = ?, Time_step_recipe = ?, FRK_recipe = ? WHERE Id_step_recipe = ?',
+      'UPDATE Step_recipe SET Detail_Step_recipe = ?, Image_Step_recipe = ?, Time_Step_recipe = ?, FRK_recipe = ? WHERE Id_Step_recipe = ?',
       [detailStep, imageStep, timeStep, recipeId, stepId],
       function (err) {
         if (err) {
@@ -103,13 +103,13 @@ class StepRecipe {
         callback(null, updatedStepRecipe);
       }
     );
-    db.close();
+    
   }
 
   static deleteStepRecipe(stepId, callback) {
-    const db = new sqlite3.Database('DB_Notebook.db');
+    
     db.run(
-      'DELETE FROM Step_recipe WHERE Id_step_recipe = ?',
+      'DELETE FROM Step_recipe WHERE Id_Step_recipe = ?',
       [stepId],
       function (err) {
         if (err) {
@@ -123,7 +123,7 @@ class StepRecipe {
         callback(null, true); // Step recipe deleted successfully
       }
     );
-    db.close();
+    
   }
 }
 
