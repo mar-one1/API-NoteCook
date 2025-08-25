@@ -21,7 +21,7 @@ const upload = multer({ dest: "uploads/", storage: storage });
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
-  const { name, icon, fav,unique_key, userId } = req.body;
+  const { name, icon, fav, unique_key, userId } = req.body;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ error: errors.array() });
@@ -207,7 +207,7 @@ router.get("/search/nom", (req, res) => {
   });
 });
 
-router.put('/', (req, res) => {
+router.put('/recipe', (req, res) => {
   const recipeData = req.body;
 
   Recipe.checkexist(recipeData, (err, result) => {
@@ -234,11 +234,22 @@ router.put('/', (req, res) => {
   });
 });
 
+router.put('/', (req, res) => {
+  const recipeData = req.body;
+
+  Recipe.updateRecipeWithDetails(recipeData, (err, recipeId) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to update recipe'+ err });
+    }
+    return res.status(200).json({ message: 'Recipe updated', recipeId });
+  });
+});
+
 
 router.delete('/delete/:path', (req, res) => {
   const pathimage = req.params.path;
-  console.log('path for delete '+pathimage);
-  Recipe.deleteimage(pathimage,(err, validite) => {
+  console.log('path for delete ' + pathimage);
+  Recipe.deleteimage(pathimage, (err, validite) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
