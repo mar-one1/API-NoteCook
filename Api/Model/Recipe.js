@@ -801,9 +801,14 @@ class Recipe {
 
           if (!recipeRow) {
             console.log(`Recipe not found. Inserting instead: ${uniqueKey}`);
-            db.run("ROLLBACK");
-            return this.insertRecipeWithDetails(recipeData, callback);
+            db.run("ROLLBACK", (err) => {
+              if (err) return callback(err);
+              // now it's safe to call insert
+              this.insertRecipeWithDetails(recipeData, callback);
+            });
+            return;
           }
+
 
           const recipeId = recipeRow.Id_recipe;
           console.log("Updating recipe with ID:", recipeId);
@@ -814,12 +819,13 @@ class Recipe {
             `UPDATE Recipe
              SET Nom_Recipe = ?, Fav_recipe = ?
              WHERE Id_recipe = ?`,
-            [recipe.name, recipe.fav, recipeId],
+            [recipe.name, recipe.fav, uniqueKey],
             (err) => {
               if (err) {
                 db.run("ROLLBACK");
                 return callback(err);
               }
+              console.log("Updating>>");
               db.run(
                 `UPDATE Detail_recipe
                   SET Dt_recipe = ?, Dt_recipe_time = ?, Rate_recipe = ?, 
@@ -838,7 +844,7 @@ class Recipe {
                     db.run("ROLLBACK");
                     return callback(err);
                   }
-
+                  console.log("Updating>>>");
                   // 🔍 Get the ID back
                   db.get(
                     `SELECT Id_detail_recipe FROM Detail_recipe WHERE FRK_recipe = ?`,
@@ -848,9 +854,10 @@ class Recipe {
                         db.run("ROLLBACK");
                         return callback(err);
                       }
-
+                      console.log("Updating>>>>");
                       const detailId = detailRow ? detailRow.Id_detail_recipe : null;
                       console.log("Detail ID:", detailId);
+                      console.log("Updating>>>>>>");
                       // ✅ تحديث المكونات
                       Recipe.updateIngredients(db, ingredients, detailId, (err) => {
                         if (err) {

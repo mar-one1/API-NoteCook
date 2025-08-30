@@ -105,80 +105,76 @@ class StepRecipe {
     );
     
   }
+static async UpdateStepsImages(id_step, imagebyte, callback) {
 
-  static async updateStepImage(unique, imagebyte, callback = () => { }) {
     try {
-      const res = await pool.query(
-        `SELECT "Image_step_recipe" FROM "StepRecipe" WHERE "Image_step_recipe" = $1`,
-        [unique]
-      );
-
-      if (res.rows.length === 0) {
-        return callback(new Error("Step not found"));
-      }
-
-      const oldPath = res.rows[0].Icon_recipe;
-      const updateRes = await pool.query(
-        `UPDATE "StepRecipe" SET "Image_step_recipe" = $1 WHERE "Image_step_recipe" = $2`,
-        [imagebyte, unique]
-      );
-
-      if (updateRes.rowCount === 0) {
-        return callback(null, null); // Recipe not found or not updated
-      }
-
-      console.log("Old Path: ", oldPath);
-      // Skip update if oldPath is base64 string
-      if (oldPath && oldPath.startsWith('data:')) {
-        console.log("Old path is base64 data, skipping image update.");
-        return callback(null, imagebyte);
-      }
-      
-      if (oldPath) {
-        StepRecipe.deleteimage(oldPath, (err, message) => {
-          if (err) {
-            console.error("Error deleting old image:", err);
-            return callback(err);
+      // Retrieve the recipe ID using the unique_key_recipe
+      db.get(
+        `SELECT Image_Step_recipe FROM Step_recipe WHERE Image_Step_recipe = ?`,
+        [id_step],
+        (err, row) => {
+          if (err || !row) {
+            db.run("ROLLBACK");
+            console.error("Error retrieving recipe ID:", err);
+            return callback(err || new Error("Recipe not found"));
           }
+          const oldPath = row.imageStep;
+          db.run(
+            "UPDATE Step_recipe SET Image_Step_recipe = ? WHERE Image_Step_recipe = ?",
+            [imagebyte, id_step],
+            function (err) {
+              if (err) {
+                callback(err);
+                return;
+              }
+              if (this.changes === 0) {
+                callback(null, null); // User not found or not updated
+                return;
+              }
+              // If the user doesn't exist, add them to the database
+              console.log(oldPath);
+              Recipe.deleteimage(oldPath);
+              callback(null, imagebyte);
+              console.log(imagebyte);
+            }
+          );
+        }
+      )
 
-          console.log(message);
-          callback(null, imagebyte);  // Return the updated image byte data
-        });
-      } else {
-        callback(null, imagebyte);  // No old image to delete, return updated data
-      }
     } catch (err) {
-      console.error("Error updating recipe image:", err);
-      callback(err);
+
+      console.error("Error Update Recipe Image : " + unique, err);
+      callback(err, null);
+    }
+  }
+static deleteimage(pathimage, callback = () => { }) { // Default empty callback
+    const filePathToDelete = "./public/data/uploads/" + pathimage;
+    try {
+      console.log("path for delete " + filePathToDelete);
+      fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
+        if (err) {
+          console.error("File does not exist or cannot be accessed.");
+          return callback(err);  // Pass error to the callback
+        }
+
+        // File exists, proceed to delete
+        fs.unlink(filePathToDelete, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error("Error deleting file:", unlinkErr);
+            return callback(unlinkErr);  // Pass error to the callback
+          }
+          console.log("File deleted successfully.");
+          callback(null, "File deleted successfully.");  // Success message
+        });
+      });
+    } catch (err) {
+      console.error("Error deleting image recipe: " + filePathToDelete, err);
+      callback(err);  // Pass error to the callback
     }
   }
 
-  static deleteimage(pathimage, callback = () => { }) { // Default empty callback
-      const filePathToDelete = "./public/data/uploads/" + pathimage;
-      try {
-        console.log("path for delete " + filePathToDelete);
-        fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
-          if (err) {
-            console.error("File does not exist or cannot be accessed.");
-            return callback(err);  // Pass error to the callback
-          }
-  
-          // File exists, proceed to delete
-          fs.unlink(filePathToDelete, (unlinkErr) => {
-            if (unlinkErr) {
-              console.error("Error deleting file:", unlinkErr);
-              return callback(unlinkErr);  // Pass error to the callback
-            }
-            console.log("File deleted successfully.");
-            callback(null, "File deleted successfully.");  // Success message
-          });
-        });
-      } catch (err) {
-        console.error("Error deleting image step: " + filePathToDelete, err);
-        callback(err);  // Pass error to the callback
-      }
-    }
 
+  
 
   static deleteStepRecipe(stepId, callback) {
     

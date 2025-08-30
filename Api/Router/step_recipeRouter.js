@@ -77,32 +77,25 @@ router.put("/:id", (req, res) => {
   );
 });
 
-const { processUploadedFile } = require('../utils/fileUpload');
-
 router.post("/upload/:id", upload.single("image"), async (req, res) => {
   const id = req.params.id;
   console.log(req.body);
-  
+  console.log(req.file);
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
+  // Process the uploaded file
+  const fileName = req.file.filename;
+  const imageUrl = encodeURIComponent(fileName);
+  console.log(id);
 
-  try {
-    // Process the uploaded file and get base64 data
-    const { filename, base64Data } = processUploadedFile(req.file);
-    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
-
-    // Call the method to update recipe image
-    await StepRecipe.updateStepImage(id, imageUrl, (err, result) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.status(201).json(result);
-    });
-  } catch (err) {
-    console.error('Error processing upload:', err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+  StepRecipe.UpdateStepsImages(id, imageUrl, (err, validite) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    // If the user doesn't exist, add them to the database
+    res.status(201).json(validite);
+  });
 });
 
 // Delete a step recipe by ID
