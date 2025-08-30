@@ -756,30 +756,30 @@ class Recipe {
   }
 
   static checkexist(recipeData, callback) {
-  const { recipe } = recipeData;
-  const uniqueKey = recipe.unique_key;
+    const { recipe } = recipeData;
+    const uniqueKey = recipe.unique_key;
 
-  db.get(
-    `SELECT Id_recipe FROM Recipe WHERE unique_key_recipe = ?`,
-    [uniqueKey],
-    (err, row) => {
-      if (err) {
-        console.error("Error retrieving recipe ID:", err);
-        return callback(err);
+    db.get(
+      `SELECT Id_recipe FROM Recipe WHERE unique_key_recipe = ?`,
+      [uniqueKey],
+      (err, row) => {
+        if (err) {
+          console.error("Error retrieving recipe ID:", err);
+          return callback(err);
+        }
+
+        if (!row) {
+          // Not found → return 201
+          console.log("Recipe does not exist, should insert:", uniqueKey);
+          return callback(null, { status: 201, recipeId: null });
+        }
+
+        // Found → return 200
+        console.log("✅ Recipe exists:", row.Id_recipe);
+        return callback(null, { status: 200, recipeId: row.Id_recipe });
       }
-
-      if (!row) {
-        // Not found → return 201
-        console.log("Recipe does not exist, should insert:", uniqueKey);
-        return callback(null, { status: 201, recipeId: null });
-      }
-
-      // Found → return 200
-      console.log("✅ Recipe exists:", row.Id_recipe);
-      return callback(null, { status: 200, recipeId: row.Id_recipe });
-    }
-  );
-}
+    );
+  }
 
 
   static updateRecipeWithDetails(recipeData, callback) {
@@ -807,7 +807,7 @@ class Recipe {
 
           const recipeId = recipeRow.Id_recipe;
           console.log("Updating recipe with ID:", recipeId);
-          
+
 
           // تحديث جدول الوصفات
           db.run(
@@ -820,13 +820,11 @@ class Recipe {
                 db.run("ROLLBACK");
                 return callback(err);
               }
-
-              // تحديث التفاصيل
               db.run(
                 `UPDATE Detail_recipe
-                 SET Dt_recipe = ?, Dt_recipe_time = ?, Rate_recipe = ?, 
-                     Level_recipe = ?, Calories_recipe = ?
-                 WHERE FRK_recipe = ?`,
+                  SET Dt_recipe = ?, Dt_recipe_time = ?, Rate_recipe = ?, 
+                  Level_recipe = ?, Calories_recipe = ?
+                  WHERE FRK_recipe = ?`,
                 [
                   detail_recipe.detail,
                   detail_recipe.time,
@@ -841,37 +839,48 @@ class Recipe {
                     return callback(err);
                   }
 
-                  const detailId = this.changes
-                   console.log("Detail ID:", detailId);
-                  // ✅ تحديث المكونات
-                  Recipe.updateIngredients(db,ingredients, detailId, (err) => {
-                    if (err) {
-                      db.run("ROLLBACK");
-                      return callback(err);
-                    }
-
-                    // ✅ تحديث الخطوات
-                    Recipe.updateSteps(db,steps, recipeId, (err) => {
+                  // 🔍 Get the ID back
+                  db.get(
+                    `SELECT Id_detail_recipe FROM Detail_recipe WHERE FRK_recipe = ?`,
+                    [recipeId],
+                    (err, detailRow) => {
                       if (err) {
                         db.run("ROLLBACK");
                         return callback(err);
                       }
 
-                      db.run("COMMIT", (err) => {
+                      const detailId = detailRow ? detailRow.Id_detail_recipe : null;
+                      console.log("Detail ID:", detailId);
+                      // ✅ تحديث المكونات
+                      Recipe.updateIngredients(db, ingredients, detailId, (err) => {
                         if (err) {
+                          db.run("ROLLBACK");
                           return callback(err);
                         }
-                        console.log("Recipe updated successfully:", uniqueKey);
-                        callback(null, uniqueKey);
+
+                        // ✅ تحديث الخطوات
+                        Recipe.updateSteps(db, steps, recipeId, (err) => {
+                          if (err) {
+                            db.run("ROLLBACK");
+                            return callback(err);
+                          }
+
+                          db.run("COMMIT", (err) => {
+                            if (err) {
+                              return callback(err);
+                            }
+                            console.log("Recipe updated successfully:", uniqueKey);
+                            callback(null, uniqueKey);
+                          });
+                        });
                       });
-                    });
-                  });
+                    }
+                  );
                 }
               );
             }
           );
-        }
-      );
+        });
     });
   }
 
@@ -915,40 +924,40 @@ class Recipe {
     }
   }
   static insertIngredients(db, ingredients, recipeId, callback) {
-  try {
-    const insertIngredient = db.prepare(
-      `INSERT INTO Ingredient (Ingredient_recipe, PoidIngredient_recipe, Unite, FRK_recipe) VALUES (?, ?, ?, ?)`
-    );
-
-    let called = false; // ⬅️ باش مانناديش callback بزاف المرات
-
-    ingredients.forEach((ingredient) => {
-      insertIngredient.run(
-        ingredient.ingredient,
-        ingredient.poidIngredient,
-        ingredient.unite,
-        recipeId,
-        (err) => {
-          if (err && !called) {
-            called = true;
-            insertIngredient.finalize(() => {}); // نحاول نسالي الـ statement
-            return callback(err);
-          }
-        }
+    try {
+      const insertIngredient = db.prepare(
+        `INSERT INTO Ingredient (Ingredient_recipe, PoidIngredient_recipe, Unite, FRK_recipe) VALUES (?, ?, ?, ?)`
       );
-    });
 
-    insertIngredient.finalize((err) => {
-      if (!called) {
-        called = true;
-        callback(err);
-      }
-    });
-  } catch (err) {
-    console.error("Error insert Ingredients", err);
-    callback(err);
+      let called = false; // ⬅️ باش مانناديش callback بزاف المرات
+
+      ingredients.forEach((ingredient) => {
+        insertIngredient.run(
+          ingredient.ingredient,
+          ingredient.poidIngredient,
+          ingredient.unite,
+          recipeId,
+          (err) => {
+            if (err && !called) {
+              called = true;
+              insertIngredient.finalize(() => { }); // نحاول نسالي الـ statement
+              return callback(err);
+            }
+          }
+        );
+      });
+
+      insertIngredient.finalize((err) => {
+        if (!called) {
+          called = true;
+          callback(err);
+        }
+      });
+    } catch (err) {
+      console.error("Error insert Ingredients", err);
+      callback(err);
+    }
   }
-}
 
   static insertReviews(db, reviews, recipeId, callback) {
     try {
