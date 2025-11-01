@@ -34,7 +34,26 @@ npm install
 
 Create a `.env` file at the root of the project and fill in the following values:
 
-```env
+```# SERVER
+# SERVER
+SERVER_HOST=127.0.0.1
+SERVER_PORT=3000
+JWT_SECRET=your_jwt_secret
+
+# MONGO
+MONGO_HOST=localhost
+MONGO_PORT=27017
+
+# POSTGRES
+DATABASE_URL=postgres://user:password@host:port/dbname
+POSTGRES_URL_LOCAL=postgres://user:password@localhost:5432/dbname
+
+# VERCEL
+VERCEL_PORT=8080
+
+# ENV
+NODE_ENV=development
+
 ```
 
 > ✅ Comment/uncomment upload destination or DB based on your environment.
