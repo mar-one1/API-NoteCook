@@ -1,3 +1,14 @@
 node_modules/
 .vercel
 .env*
+
+# Vercel & Netlify
+.vercel
+.netlify
+
+# Logs
+logs
+*.log
+
+# Uploads (optional)
+upload/
