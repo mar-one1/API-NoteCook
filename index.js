@@ -106,11 +106,13 @@ app.get('/protected', verifyToken, (req, res) => {
 });
 
 // Start the server if not in serverless environment
-if (process.env.NODE_ENV !== 'production') {
-  server.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}/`);
-  });
-}
+server.listen(port, () => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🚀 Server is running at http://localhost:${port}/`);
+  } else {
+    console.log(`🚀 Server running in production`);
+  }
+});
 
 // Export the Express app for serverless function
 module.exports = app;
