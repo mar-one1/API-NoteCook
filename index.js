@@ -1,6 +1,5 @@
 const express = require('express');
 const app = express();
-const { Pool } = require('pg'); // PostgreSQL client
 const server = require('http').createServer(app);
 const socketIo = require('socket.io');
 const port = process.env.PORT || 3000;

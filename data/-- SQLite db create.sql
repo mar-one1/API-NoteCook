@@ -177,7 +177,8 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
 
 
 
-) // PR CREATE TABLE "User" (
+) 
+// PR CREATE TABLE "User" (
     "Id_user" SERIAL PRIMARY KEY,
     "username" TEXT,
     "Firstname_user" TEXT,
