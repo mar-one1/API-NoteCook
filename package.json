@@ -27,6 +27,7 @@
     "body-parser": "^1.20.2",
     "dotenv": "^16.4.7",
     "express": "^4.21.0",
+    "express-rate-limit": "^8.2.1",
     "express-validator": "^7.0.1",
     "file-url": "^4.0.0",
     "fuse.js": "^7.0.0",

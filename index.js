@@ -9,6 +9,55 @@ const cors = require('cors');
 const dotenv = require('dotenv'); // Load environment variables from .env file
 dotenv.config(); // Ensure the environment variables are loaded
 const { users } = require('./Api/handlers/socketHandler');
+const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
+const helmet = require('helmet');
+app.use(helmet());
+const rateLimit = require('express-rate-limit');
+const allowedOrigins = [
+    'http://localhost:3000' 
+  ];
+// Rate limiting BEFORE any routes
+app.use(rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 100
+}));
+
+// Secure CORS
+app.use(cors({
+  origin: function (origin, callback) {
+    console.log(origin);
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'token'],
+  credentials: true
+}));
+
+
+
+
+// Setup socket.io with CORS
+const io = socketIo(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
+
+// Make io instance available to routes
+app.set('io', io);
+
+// Setup socket handlers
+setupSocketHandlers(io);
+
 
 const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
 const chatRoutes = require('./Api/Router/chat_Router');
@@ -26,8 +75,6 @@ const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
 const categoryRouter = require('./Api/Router/category_Router');
 
-// Import socket handler setup
-const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 
 
 app.delete('/cleanup-images', async (req, res) => {
@@ -48,8 +95,8 @@ swaggerSetup(app);
 
 
 app.use('/auth', authRouter);
-app.use('/users', usersRouter);
 app.use(verifyToken); // Apply middleware to all routes
+app.use('/users', usersRouter);
 app.use('/api/chat', chatRoutes);
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
@@ -61,39 +108,15 @@ app.use('/produits', produitRouter);
 app.use('/favorites', favRouter);
 app.use('/categories', categoryRouter);
 
-// Socket.io setup with CORS configuration
-const io = socketIo(server, {
-  pingTimeout: 60000, // 60 seconds ping timeout
-  pingInterval: 25000, // 25 seconds ping interval
-  cors: {
-    origin: '*', // Allow all origins for testing
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'token']
-  }
-});
 
-// Make io instance available to routes
-app.set('io', io);
 
-// Setup socket handlers
-setupSocketHandlers(io);
 
-// Register route to check if a user is connected
+// Route check user connection
 app.get('/isUserConnected/:userId', (req, res) => {
   const userId = req.params.userId;
-  if (users[userId]) {
-    res.json({ connected: true });
-  } else {
-    res.json({ connected: false });
-  }
+  res.json({ connected: !!users[userId] });
 });
 
-// Enable CORS
-app.use(cors({
-  origin: '*', // Allow all origins for testing
-  methods: ['GET', 'POST','PUT','DELETE'],
-  allowedHeaders: ['Content-Type', 'token']
-}));
 
 // Example of a protected route
 app.get('/protected', verifyToken, (req, res) => {
