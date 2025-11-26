@@ -91,7 +91,7 @@ app.get('/isUserConnected/:userId', (req, res) => {
 // Enable CORS
 app.use(cors({
   origin: '*', // Allow all origins for testing
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST','PUT','DELETE'],
   allowedHeaders: ['Content-Type', 'token']
 }));
 
