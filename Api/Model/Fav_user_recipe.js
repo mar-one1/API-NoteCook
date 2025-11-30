@@ -1,4 +1,4 @@
-const pool = require("../../data/database");
+const pool = require("../data/database");
 
 const Favorite = {
   // Create a new favorite

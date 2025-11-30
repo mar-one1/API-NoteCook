@@ -191,8 +191,13 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
     "Status_user" TEXT,
     "Grade_user" TEXT,
     "Url_image" TEXT,
+    "force_password_change" BOOLEAN DEFAULT FALSE,
     CONSTRAINT unique_username UNIQUE (username)
 );
+/*
+ALTER TABLE "User"
+ADD COLUMN "force_password_change" BOOLEAN DEFAULT FALSE;
+*/
 -- Create the Recipe table
 CREATE TABLE "Recipe" (
     "Id_recipe" SERIAL PRIMARY KEY,

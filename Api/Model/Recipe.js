@@ -1,4 +1,4 @@
-const pool = require("../../data/database");
+const pool = require("../data/database");
 const UserModel = require("./User"); // Import the User model
 const DetailRecipeModel = require("./Detail_recipe"); // Import the DetailRecipe model
 const IngredientModel = require("./Ingredient"); // Import the Ingredient model

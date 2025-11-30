@@ -1,4 +1,4 @@
-const pool = require("../../data/database");
+const pool = require("../data/database");
 
 class IngredientRecipe {
   constructor(id, recipeId, listIngredients) {

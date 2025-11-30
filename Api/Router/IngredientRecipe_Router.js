@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../../data/database');
+const pool = require('../data/database');
 const IngredientRecipe = require('../Model/IngredientRecipe');
 
 // Create a new ingredient_recipe entry

@@ -1,4 +1,4 @@
-const pool = require("../../data/database");
+const pool = require("../data/database");
 const Recipe = require("../Model/Recipe"); // Import the Recipe model
 
 class ReviewRecipe {

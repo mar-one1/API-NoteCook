@@ -1,4 +1,4 @@
-const pool = require('../../data/database'); // Assuming pool is set up for PostgreSQL
+const pool = require('../data/database'); // Assuming pool is set up for PostgreSQL
 const RecipeModel = require('./Recipe'); // Import the Recipe model
 
 class DetailRecipe {

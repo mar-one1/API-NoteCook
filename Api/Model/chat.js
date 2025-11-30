@@ -1,4 +1,4 @@
-const pool = require("../../data/database"); // Assuming you have a PostgreSQL connection pool setup
+const pool = require("../data/database"); // Assuming you have a PostgreSQL connection pool setup
 
 class Chat {
   constructor(id, recipeId, senderId, receiverId, message, timestamp, status = 'sent', readAt = null) {
