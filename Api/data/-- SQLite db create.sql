@@ -13,8 +13,12 @@ CREATE TABLE User (
     Grade_user TEXT,
     Status_user TEXT,
     Url_image TEXT,
+    force_password_change BOOLEAN DEFAULT FALSE,
     CONSTRAINT unique_username UNIQUE (username)
 );
+/*ALTER TABLE "User"
+ADD COLUMN "force_password_change" BOOLEAN DEFAULT FALSE;
+*/
 -- Create the Recipe table
 CREATE TABLE Recipe (
     Id_recipe INTEGER PRIMARY KEY AUTOINCREMENT,
