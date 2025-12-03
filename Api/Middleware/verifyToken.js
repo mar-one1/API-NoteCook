@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 // Secret key used to sign and verify tokens
 const User = require('../Model/User');
 const { Error } = require('sequelize');
-const config = require('../../config');
+const config = require('../../.config');
 const secretKey = config.JWT_SECRET;
 
 function verifyToken(req, res, next) {
