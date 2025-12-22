@@ -61,6 +61,7 @@ const chatRoutes = require('./Api/Router/chat_Router');
 const authRouter = require('./Api/Router/auth_Router');
 const verifyToken = require('./Api/Middleware/verifyToken');
 const bodyParser = require('body-parser');
+const usersRouter = require('./Api/Router/usersRouter');
 const recipeRouter = require('./Api/Router/recipeRouter');
 const detailRecipeRouter = require('./Api/Router/detail_recipeRouter');
 const ingredientRecipeRouter = require('./Api/Router/ingredient_Router');
