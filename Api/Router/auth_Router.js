@@ -30,7 +30,6 @@ authRouter.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
-
     // Password check
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -41,9 +40,9 @@ authRouter.post("/login", async (req, res) => {
     if (user.force_password_change === true) {
       return res.status(200).json({
         status: "PASSWORD_CHANGE_REQUIRED",
-        user_id: user.id_user
+        user_id: user.Id_user
       });
-    }
+    }    
 
     // Normal login → Generate JWT
     const token = jwt.sign(
@@ -66,13 +65,14 @@ authRouter.post("/login", async (req, res) => {
 
 authRouter.post("/change-password", async (req, res) => {
   const { user_id, old_password, new_password } = req.body;
-
+  console.log(old_password);
+  
   let client;
   try {
     client = await pool.connect();
 
     // Get user with password
-    const query = `SELECT "password" FROM "User" WHERE "id_user" = $1`;
+    const query = `SELECT "password" FROM "User" WHERE "Id_user" = $1`;
     const { rows } = await client.query(query, [user_id]);
 
     if (rows.length === 0) {
@@ -95,7 +95,7 @@ authRouter.post("/change-password", async (req, res) => {
       `UPDATE "User"
        SET "password" = $1,
            "force_password_change" = FALSE
-       WHERE "id_user" = $2`,
+       WHERE "Id_user" = $2`,
       [hashed, user_id]
     );
 
@@ -103,7 +103,7 @@ authRouter.post("/change-password", async (req, res) => {
 
   } catch (error) {
     console.error("Change password error:", error);
-    res.status(500).json({ error: "Failed to change password" });
+    res.status(400).json({ error: "Failed to change password" });
   } finally {
     if (client) {
       client.release();
