@@ -59,7 +59,6 @@ setupSocketHandlers(io);
 const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
 const chatRoutes = require('./Api/Router/chat_Router');
 const authRouter = require('./Api/Router/auth_Router');
-const usersRouter = require('./Api/Router/usersRouter');
 const verifyToken = require('./Api/Middleware/verifyToken');
 const bodyParser = require('body-parser');
 const recipeRouter = require('./Api/Router/recipeRouter');
@@ -92,8 +91,8 @@ swaggerSetup(app);
 
 
 app.use('/auth', authRouter);
-app.use(verifyToken); // Apply middleware to all routes
 app.use('/users', usersRouter);
+app.use(verifyToken); // Apply middleware to all routes
 app.use('/api/chat', chatRoutes);
 app.use('/recipes', recipeRouter);
 app.use('/detailrecipes', detailRecipeRouter);
