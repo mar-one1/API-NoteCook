@@ -5,6 +5,8 @@ const bodyParser = require("body-parser");
 const pool = require("../data/database"); // Import your PostgreSQL pool
 // Secret key for JWT token (change this to a secure value in production)
 const config = require('../../.config');
+const { body, validationResult } = require('express-validator');
+const validateUser = require('../validators/validateUser');
 const secretKey = config.JWT_SECRET;
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
@@ -14,8 +16,6 @@ authRouter.use(bodyParser.json());
 // Login route
 authRouter.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log("Username:", username);
-  console.log("Password:", password);
 
   let client;
   try {
@@ -63,9 +63,60 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
+authRouter.post('/register', validateUser.validateUserRegistration, async (req, res) => {
+
+  // Extract user data from the request body
+  const {
+    username,
+    firstname,
+    lastname,
+    birthday,
+    email,
+    phoneNumber,
+    icon,
+    password,
+    grade,
+    status,
+    url,
+  } = req.body;
+
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  // Create the user in the database
+  User.createUser(
+  username,
+  firstname,
+  lastname,
+  birthday,
+  email,
+  phoneNumber,
+  icon,
+  password,
+  grade,
+  status,
+  url,
+  (err, newUser) => {
+    
+    if (err) {
+      if (err.message === 'User already exists') {
+        return res.status(409).json({ error: 'User already exists' });
+      }
+      else {
+      return res.status(500).json({ error: err.message });
+      }
+    }
+    res.status(201).json(newUser);
+  }
+  );
+});
+
+
 authRouter.post("/change-password", async (req, res) => {
   const { user_id, old_password, new_password } = req.body;
-  console.log(old_password);
   
   let client;
   try {

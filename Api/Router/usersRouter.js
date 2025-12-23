@@ -8,7 +8,6 @@ router.use(express.urlencoded({ extended: true }));
 const { body, validationResult } = require('express-validator');
 const validateUser = require('../validators/validateUser');
 
-``
 // Get a user by ID
 /*router.get('/:id', async (req, res) => {
   const userId = req.params.id;
