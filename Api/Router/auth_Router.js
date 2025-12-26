@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
 const pool = require("../data/database"); // Import your PostgreSQL pool
+const User = require('../Model/User');
 // Secret key for JWT token (change this to a secure value in production)
 const config = require('../../.config');
 const { body, validationResult } = require('express-validator');
