@@ -97,7 +97,7 @@ class User {
 
       // User doesn't exist, insert them into the database
       const insertQuery =
-        'INSERT INTO "User" (username, "Firstname_user", "Lastname_user", "Birthday_user", "Email_user", "Phonenumber_user", "Icon_user", password, "Grade_user", "Status_user") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *';
+        'INSERT INTO "User" (username, "Firstname_user", "Lastname_user", "Birthday_user", "Email_user", "Phonenumber_user", "Icon_user", password, "Grade_user", "Status_user","unique_key_user") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *';
       const insertRes = await pool.query(insertQuery, [
         username,
         firstname,
@@ -109,6 +109,7 @@ class User {
         password,
         grade,
         status,
+        unique_key_user
       ]);
 
       // Create new user object from the inserted row
@@ -376,8 +377,8 @@ class User {
       const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : null;
 
       const query = `UPDATE "User" 
-        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10
-        WHERE Id_user = $11
+        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10, "unique_key_user" = $11
+        WHERE Id_user = $12
         RETURNING "Id_user"`;
 
       const res = await pool.query(query, [

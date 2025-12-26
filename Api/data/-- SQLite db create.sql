@@ -204,6 +204,12 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
 /*
 ALTER TABLE "User"
 ADD COLUMN "force_password_change" BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE "User"
+ADD COLUMN unique_key_user TEXT;
+
+CREATE UNIQUE INDEX idx_unique_key_user
+ON "User" (unique_key_user);
 */
 -- Create the Recipe table
 CREATE TABLE "Recipe" (
