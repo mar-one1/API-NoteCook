@@ -181,7 +181,7 @@ console.log("username for image is : " +username)
 });
 
 // get All Users
-router.get('/', (req, res) => {
+/*router.get('/', (req, res) => {
   User.getAllUsers((err, users) => {
     if (err) {
       return res.status(500).json({ error: err.message });
@@ -189,7 +189,7 @@ router.get('/', (req, res) => {
     res.json(users);
   });
 });
-
+*/
 // Add more user routes as needed
 
 router.put('/image/:username', (req, res) => {

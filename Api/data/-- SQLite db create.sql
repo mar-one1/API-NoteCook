@@ -2,7 +2,8 @@
 -- Create the User table
 CREATE TABLE User (
     Id_user INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
+    unique_key_user TEXT UNIQUE,
+    username TEXT UNIQUE,
     Firstname_user TEXT,
     Lastname_user TEXT,
     Birthday_user TEXT,
@@ -104,7 +105,8 @@ CREATE TABLE Categorie_recipe (
 -- Create the User table
 CREATE TABLE IF NOT EXISTS "User" (
     "Id_user" INTEGER PRIMARY KEY AUTOINCREMENT,
-    "username" TEXT NOT NULL,
+    "username" TEXT NOT NULL UNIQUE,
+    "unique_key_user TEXT UNIQUE, "
     "Firstname_user" TEXT,
     "Lastname_user" TEXT,
     "Icon_user" TEXT,
@@ -184,7 +186,8 @@ CREATE TABLE IF NOT EXISTS "FavoriteUserRecipe" (
 ) 
 // PR CREATE TABLE "User" (
     "Id_user" SERIAL PRIMARY KEY,
-    "username" TEXT,
+    "username" TEXT NOT NULL,
+    "unique_key_user TEXT UNIQUE, "
     "Firstname_user" TEXT,
     "Lastname_user" TEXT,
     "Icon_user" TEXT,

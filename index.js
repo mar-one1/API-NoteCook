@@ -72,8 +72,6 @@ const produitRouter = require('./Api/Router/produit_Router');
 const favRouter = require('./Api/Router/fav_user_recipe_Router');
 const categoryRouter = require('./Api/Router/category_Router');
 
-
-
 app.delete('/cleanup-images', async (req, res) => {
   try {
     const result = await deleteUnusedImages();
@@ -90,7 +88,6 @@ app.use(bodyParser.json());
 // Initialize Swagger documentation
 swaggerSetup(app);
 
-
 app.use('/auth', authRouter);
 app.use(verifyToken); // Apply middleware to all routes
 app.use('/users', usersRouter);
@@ -105,15 +102,11 @@ app.use('/produits', produitRouter);
 app.use('/favorites', favRouter);
 app.use('/categories', categoryRouter);
 
-
-
-
 // Route check user connection
 app.get('/isUserConnected/:userId', (req, res) => {
   const userId = req.params.userId;
   res.json({ connected: !!users[userId] });
 });
-
 
 // Example of a protected route
 app.get('/protected', verifyToken, (req, res) => {
@@ -132,6 +125,5 @@ server.listen(port, () => {
     console.log(`🚀 Server running in production`);
   }
 });
-
 // Export the Express app for serverless function
 module.exports = app;

@@ -24,7 +24,8 @@ class User {
     password,
     grade,
     status,
-    url
+    url,
+    unique_key_user
   ) {
     this.id = id;
     this.username = username;
@@ -38,6 +39,7 @@ class User {
     this.grade = grade;
     this.status = status;
     this.url = url;
+    this.unique_key_user = unique_key_user;
   }
 
 
@@ -78,6 +80,7 @@ class User {
     grade,
     status,
     url,
+    unique_key_user,
     callback
   ) {
     // Getting a pool from the pool
@@ -121,7 +124,8 @@ class User {
         password,
         grade,
         status,
-        url
+        url,
+        unique_key_user
       );
 
       callback(null, newUser);
@@ -180,7 +184,8 @@ class User {
         row.password,
         row.Grade_user,
         row.Status_user,
-        row.Url_image
+        row.Url_image,
+        row.unique_key_user
       );
       callback(null, user);
     } catch (err) {
@@ -273,7 +278,8 @@ class User {
         row.password,
         row.Grade_user,
         row.Status_user,
-        row.Url_image
+        row.Url_image,
+        row.unique_key_user
       );
 
       callback(null, user);
@@ -335,7 +341,8 @@ class User {
           row.password,
           row.Grade_user,
           row.Status_user,
-          row.Url_image
+          row.Url_image,
+          row.unique_key_user
         );
       });
 
@@ -360,6 +367,7 @@ class User {
     grade,
     status,
     url,
+    unique_key_user,
     callback
   ) {
 
@@ -393,7 +401,8 @@ class User {
         hashedPassword || password,
         grade,
         status,
-        url
+        url,
+        unique_key_user
       );
 
       callback(null, updatedUser);
@@ -456,6 +465,7 @@ class User {
     grade,
     status,
     url,
+    unique_key_user,
     callback
   ) {
 
@@ -464,7 +474,7 @@ class User {
 
       const query = `
         UPDATE "User" 
-        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10 
+        SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10, unique_key_user = $11 
         WHERE username = $11 
         RETURNING "Id_user"
       `;
@@ -480,6 +490,7 @@ class User {
         grade,
         status,
         url,
+        unique_key_user,
         username,
       ];
 
@@ -503,7 +514,8 @@ class User {
         password,
         grade,
         status,
-        url
+        url,
+        unique_key_user
       );
 
       console.log(updatedUser);
