@@ -78,6 +78,7 @@ authRouter.post('/register', validateUser.validateUserRegistration, async (req, 
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
 
   // Check for validation errors
@@ -99,6 +100,7 @@ authRouter.post('/register', validateUser.validateUserRegistration, async (req, 
   grade,
   status,
   url,
+  unique_key_user,
   (err, newUser) => {
     
     if (err) {
