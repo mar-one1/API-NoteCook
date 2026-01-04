@@ -48,6 +48,7 @@ router.post('/', validateUser.validateUserRegistration, async (req, res) => {
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
 
   // Check for validation errors
@@ -69,6 +70,7 @@ router.post('/', validateUser.validateUserRegistration, async (req, res) => {
   grade,
   status,
   url,
+  unique_key_user,
   (err, newUser) => {
     
     if (err) {
@@ -231,13 +233,14 @@ router.put('/:id', validateUser.validateUserUpdate, (req, res) => {
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
      return res.status(400).json({ errors: errors.array() });
    }
-  User.updateUser(userId,username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
+  User.updateUser(userId,username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url,unique_key_user, (err, updatedUser) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -263,13 +266,14 @@ router.put('/filtre/:username',  validateUser.validateUserUpdate ,async (req, re
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
      return res.status(400).json({ errors: errors.array() });
    }
-  User.updateUserByUsername(username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
+  User.updateUserByUsername(username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url,unique_key_user, (err, updatedUser) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -308,9 +312,5 @@ router.delete('/:id', validateUser.validateUserDelete, (req, res) => {
 router.get('/', (req, res) => {
   res.send('Hello from the router User!');
 });
-
-
-module.exports = router;
-
 
 module.exports = router;
