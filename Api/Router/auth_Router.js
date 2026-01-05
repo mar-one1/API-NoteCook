@@ -112,7 +112,13 @@ authRouter.post('/register', validateUser.validateUserRegistration, async (req, 
       return res.status(500).json({ error: err.message });
       }
     }
-    res.status(201).json(newUser);
+    // Normal login → Generate JWT
+    const token = jwt.sign(
+      { id: newUser.id_user, username: newUser.username },
+      secretKey,
+      { expiresIn: "1h" }
+    );
+    res.status(201).json({ newUser, token });
   }
   );
 });
