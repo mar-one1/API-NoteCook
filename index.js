@@ -11,12 +11,12 @@ dotenv.config(); // Ensure the environment variables are loaded
 const { users } = require('./Api/handlers/socketHandler');
 const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 const helmet = require('helmet');
-app.use(helmet());
 const rateLimit = require('express-rate-limit');
 const allowedOrigins = [
     'http://localhost:3000' 
   ];
 // Rate limiting BEFORE any routes
+app.use(helmet());
 app.use(rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 100
@@ -37,7 +37,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'token'],
   credentials: true
 }));
-
 // Setup socket.io with CORS
 const io = socketIo(server, {
   cors: {
@@ -82,8 +81,16 @@ app.delete('/cleanup-images', async (req, res) => {
 });
 
 // Middleware for parsing JSON request bodies
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// Parse JSON bodies (secure)
+app.use(express.json({
+  limit: '10kb'
+}));
+
+// Parse URL-encoded bodies (secure)
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10kb'
+}));
 
 // Initialize Swagger documentation
 swaggerSetup(app);
