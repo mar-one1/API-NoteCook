@@ -25,6 +25,29 @@ app.use(rateLimit({
   max: 100
 }));
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  keyGenerator: (req) => {
+    return (
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      'unknown'
+    );
+  }
+});
+app.use(limiter);
+
+
+app.get('/test-ip', (req, res) => {
+  res.json({
+    ip: req.ip,
+    forwarded: req.headers['x-forwarded-for']
+  });
+});
 // Secure CORS
 app.use(cors({
   origin: function (origin, callback) {
