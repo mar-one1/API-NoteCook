@@ -12,9 +12,12 @@ const { users } = require('./Api/handlers/socketHandler');
 const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+
 const allowedOrigins = [
     'http://localhost:3000' 
   ];
+// TRUST PROXY (IMPORTANT)
+app.set('trust proxy', 1);
 // Rate limiting BEFORE any routes
 app.use(helmet());
 app.use(rateLimit({
@@ -59,7 +62,6 @@ const { deleteUnusedImages } = require('./Api/Router/ImageHelper');
 const chatRoutes = require('./Api/Router/chat_Router');
 const authRouter = require('./Api/Router/auth_Router');
 const verifyToken = require('./Api/Middleware/verifyToken');
-const bodyParser = require('body-parser');
 const usersRouter = require('./Api/Router/usersRouter');
 const recipeRouter = require('./Api/Router/recipeRouter');
 const detailRecipeRouter = require('./Api/Router/detail_recipeRouter');
