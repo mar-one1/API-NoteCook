@@ -149,12 +149,23 @@ router.get("/filters/recipes", (req, res) => {
 });
 
 // Get all recipes
-router.get("/", (req, res) => {
+/*router.get("/", (req, res) => {
   Recipe.getAllRecipes((err, recipes) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     res.json(recipes);
+  });
+});
+*/
+router.get("/", (req, res) => {
+  const { page, limit } = req.query;
+
+  Recipe.getAllRecipes(page, limit, (err, data) => {
+    if (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.status(200).json(data);
   });
 });
 

@@ -323,37 +323,38 @@ class User {
       callback(err, null);
     }
   }
-  static async getAllUsers(callback) {
+static async getUsers(page = 1, limit = 10, callback) {
+  try {
+    page = Number(page) || 1;
+    limit = Math.min(Number(limit) || 10, 50);
+    const offset = (page - 1) * limit;
 
-    try {
-      const query = 'SELECT * FROM "User"';
-      const res = await pool.query(query);
+    const res = await pool.query(
+      `SELECT "Id_user", "username", "Firstname_user", "Lastname_user"
+       FROM "User"
+       ORDER BY "Id_user"
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
 
-      const users = res.rows.map((row) => {
-        return new User(
-          row.Id_user,
-          row.username,
-          row.Firstname_user,
-          row.Lastname_user,
-          row.Birthday_user,
-          row.Email_user,
-          row.Phonenumber_user,
-          row.Icon_user,
-          row.password,
-          row.Grade_user,
-          row.Status_user,
-          row.Url_image,
-          row.unique_key_user
-        );
-      });
+    const users = res.rows.map(row => ({
+      id: row.Id_user,
+      username: row.username,
+      firstname: row.Firstname_user,
+      lastname: row.Lastname_user
+    }));
 
-      callback(null, users);
-    } catch (err) {
-      console.error("Error getting all users", err);
-      callback(err, null);
-    }
+    const countRes = await pool.query(`SELECT COUNT(*) FROM "User"`);
+    const totalUsers = parseInt(countRes.rows[0].count);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    callback(null, { page, limit, totalUsers, totalPages, users });
+
+  } catch (err) {
+    console.error("Error getting users:", err);
+    callback(err, null);
   }
-
+}
 
   static async updateUser(
     UserId,

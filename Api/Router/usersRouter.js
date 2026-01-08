@@ -183,15 +183,18 @@ console.log("username for image is : " +username)
 });
 
 // get All Users
-/*router.get('/', (req, res) => {
-  User.getAllUsers((err, users) => {
+router.get('/', (req, res) => {
+  const { page, limit } = req.query;
+
+  // استدعاء method مع callback
+  User.getUsers(page, limit, (err, data) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ message: 'Server error', error: err.message });
     }
-    res.json(users);
+
+    res.status(200).json(data);
   });
 });
-*/
 // Add more user routes as needed
 
 router.put('/image/:username', (req, res) => {

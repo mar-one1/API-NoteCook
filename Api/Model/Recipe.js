@@ -610,8 +610,56 @@ class Recipe {
   }
 
 
+ static async getAllRecipes(page = 1, limit = 10, callback) {
+    try {
+      page = Number(page) || 1;
+      limit = Math.min(Number(limit) || 10, 50); // حماية السيرفر
+      const offset = (page - 1) * limit;
 
-  static async getAllRecipes(callback) {
+      // جلب recipes
+      const res = await pool.query(
+        `
+        SELECT *
+        FROM "Recipe"
+        ORDER BY "Id_recipe" DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [limit, offset]
+      );
+
+      const recipes = res.rows.map((row) => new Recipe(
+        row.Id_recipe,
+        row.Nom_Recipe,
+        row.Icon_recipe,
+        row.Fav_recipe,
+        row.unique_key_recipe,
+        row.Frk_user
+      ));
+
+      // جلب العدد الكلي باش نحسب totalPages
+      const countRes = await pool.query(`SELECT COUNT(*) FROM "Recipe"`);
+      const totalRecipes = parseInt(countRes.rows[0].count);
+      const totalPages = Math.ceil(totalRecipes / limit);
+
+      // رجّع النتيجة عبر callback
+      callback(null, {
+        page,
+        limit,
+        totalRecipes,
+        totalPages,
+        recipes
+      });
+
+    } catch (err) {
+      console.error("Error getting paginated recipes:", err);
+      callback(err, null);
+    }
+  }
+
+
+
+
+ /* static async getAllRecipes(callback) {
     // Get a pool from the pool
 
     try {
@@ -634,6 +682,7 @@ class Recipe {
       callback(err, null);
     }
   }
+    */
 
   static async getUserByRecipeId(recipeId, callback) {
     // Get a pool from the pool
