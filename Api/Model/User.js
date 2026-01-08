@@ -332,7 +332,7 @@ static async getUsers(page = 1, limit = 10, callback) {
     const res = await pool.query(
       `SELECT "Id_user", "username", "Firstname_user", "Lastname_user"
        FROM "User"
-       ORDER BY "Id_user"
+       ORDER BY "Id_user" Asc
        LIMIT $1 OFFSET $2`,
       [limit, offset]
     );

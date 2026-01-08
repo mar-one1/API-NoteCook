@@ -621,7 +621,7 @@ class Recipe {
         `
         SELECT *
         FROM "Recipe"
-        ORDER BY "Id_recipe" DESC
+        ORDER BY "Id_recipe" Asc
         LIMIT $1 OFFSET $2
         `,
         [limit, offset]
