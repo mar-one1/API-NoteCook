@@ -132,21 +132,39 @@ router.post("/recipe", validateRecipe.validateCreateRecipe, async (req, res) => 
 }
 );
 
-// Route to get recipes by conditions
 router.get("/filters/recipes", (req, res) => {
-  const conditions = req.query; // Get query parameters as conditions
-  console.log(req.query);
-  // Call the method to get recipes by conditions
-  Recipe.getRecipesByConditions(conditions, (err, recipes) => {
+  const conditions = { ...req.query }; // all query params
+  const page = parseInt(conditions.page) || 1;
+  const limit = parseInt(conditions.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  // Remove pagination params from conditions so they don't go to SQL
+  delete conditions.page;
+  delete conditions.limit;
+
+  Recipe.getRecipesByConditions(conditions, limit, offset, (err, data) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+
+    const { recipes, total } = data; // data from your method
+
     if (!recipes || recipes.length === 0) {
       return res.status(404).json({ error: "Recipes not found" });
     }
-    res.json(recipes);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      page,
+      limit,
+      total,
+      totalPages,
+      recipes
+    });
   });
 });
+
 
 // Get all recipes
 /*router.get("/", (req, res) => {
@@ -210,18 +228,25 @@ router.get("/user/:username", validateRecipe.validateGetByUsernameRecipe, (req, 
 );
 
 router.get("/search/nom", (req, res) => {
-  const searchTerm = req.query.key;
-  console.log("key : " + searchTerm);
-  Recipe.searchRecipes(searchTerm, (err, recipes) => {
+  const searchTerm = req.query.key || "";
+  const page = parseInt(req.query.page) || 1;      // default page 1
+  const limit = parseInt(req.query.limit) || 10;   // default 10 per page
+
+  console.log(`Search key: ${searchTerm}, page: ${page}, limit: ${limit}`);
+
+  Recipe.searchRecipes(searchTerm, page, limit, (err, data) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    if (!recipes || recipes.length === 0) {
-      return res.status(406).json({ error: "Recipes not found !!!" });
+
+    if (!data.recipes || data.recipes.length === 0) {
+      return res.status(404).json({ error: "Recipes not found !!!" });
     }
-    res.json(recipes);
+
+    res.json(data); // data = { page, limit, total, totalPages, recipes }
   });
 });
+
 
 router.put('/', (req, res) => {
   const recipeData = req.body;

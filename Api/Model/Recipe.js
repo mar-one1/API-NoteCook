@@ -336,81 +336,104 @@ class Recipe {
   }
 }
 
-  static async getRecipesByConditions(conditions, callback) {
+  static async getRecipesByConditions(conditions, page = 1, limit = 10, callback) {
+  try {
+    let query = `
+      SELECT 
+        "Recipe".*, 
+        "DetailRecipe".*, 
+        "IngredientRecipe".*, 
+        "StepRecipe".*, 
+        "ReviewRecipe".*
+      FROM "Recipe"
+      LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
+      LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+      LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
+      LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"`;
 
-    try {
-      let query = `
-        SELECT 
-          "Recipe".*, 
-          "DetailRecipe".*, 
-          "IngredientRecipe".*, 
-          "StepRecipe".*, 
-          "ReviewRecipe".*
-        FROM "Recipe"
-        LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
-        LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
-        LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
-        LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"`;
+    let params = [];
+    let whereClauseAdded = false;
 
-      let params = [];
-      let whereClauseAdded = false;
-
-      // Check if searchText is provided
-      if (conditions.searchText) {
-        query += ` WHERE (
-          "Recipe"."Nom_Recipe" ILIKE $1 OR
-          "DetailRecipe"."Dt_recipe" ILIKE $1 OR
-          "IngredientRecipe"."Ingredient_recipe" ILIKE $1 OR
-          "StepRecipe"."Detail_step_recipe" ILIKE $1 OR
-          "ReviewRecipe"."Detail_review_recipe" ILIKE $1
-        )`;
-        params.push(`%${conditions.searchText}%`);
-        whereClauseAdded = true;
-      }
-
-      // Add other conditions dynamically
-      for (const key in conditions) {
-        if (key !== "searchText") {
-          if (!whereClauseAdded) {
-            query += " WHERE";
-            whereClauseAdded = true;
-          } else {
-            query += " AND";
-          }
-          query += ` "${key}" ILIKE $${params.length + 1}`;
-          params.push(`%${conditions[key]}%`);
-        }
-      }
-
-      // Execute the query
-      const result = await pool.query(query, params);
-
-      // Process the rows to remove duplicates
-      const recipeSet = new Set();
-      result.rows.forEach((row) => {
-        // Use JSON.stringify to compare recipe objects as strings
-        recipeSet.add(
-          JSON.stringify({
-            id: row.Id_recipe,
-            name: row.Nom_Recipe,
-            icon: row.Icon_recipe,
-            fav: row.Fav_recipe,
-            unique_key: row.unique_key_recipe,
-            userId: row.Frk_user,
-          })
-        );
-      });
-
-      // Convert the set back to an array of recipes
-      const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
-
-      // Return the results
-      callback(null, uniqueRecipes);
-    } catch (err) {
-      console.error("Error getting recipes by conditions:", err);
-      callback(err, null);
+    // Search text
+    if (conditions.searchText) {
+      query += ` WHERE (
+        "Recipe"."Nom_Recipe" ILIKE $1 OR
+        "DetailRecipe"."Dt_recipe" ILIKE $1 OR
+        "IngredientRecipe"."Ingredient_recipe" ILIKE $1 OR
+        "StepRecipe"."Detail_step_recipe" ILIKE $1 OR
+        "ReviewRecipe"."Detail_review_recipe" ILIKE $1
+      )`;
+      params.push(`%${conditions.searchText}%`);
+      whereClauseAdded = true;
     }
+
+    // Other conditions dynamically
+    for (const key in conditions) {
+      if (key !== "searchText") {
+        if (!whereClauseAdded) {
+          query += " WHERE";
+          whereClauseAdded = true;
+        } else {
+          query += " AND";
+        }
+        query += ` "${key}" ILIKE $${params.length + 1}`;
+        params.push(`%${conditions[key]}%`);
+      }
+    }
+
+    // 1️⃣ Count total recipes (before pagination)
+    const countQuery = `
+      SELECT COUNT(DISTINCT "Recipe"."Id_recipe") as total
+      FROM "Recipe"
+      LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
+      LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
+      LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
+      LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
+      ${whereClauseAdded ? query.split("FROM")[1] : ""}`;
+
+    const countResult = await pool.query(countQuery, params);
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    // 2️⃣ Add pagination
+    const offset = (page - 1) * limit;
+    query += ` GROUP BY "Recipe"."Id_recipe"
+               ORDER BY "Recipe"."Id_recipe" DESC
+               LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+
+    // 3️⃣ Unique recipes
+    const recipeSet = new Set();
+    result.rows.forEach((row) => {
+      recipeSet.add(JSON.stringify({
+        id: row.Id_recipe,
+        name: row.Nom_Recipe,
+        icon: row.Icon_recipe,
+        fav: row.Fav_recipe,
+        unique_key: row.unique_key_recipe,
+        userId: row.Frk_user,
+      }));
+    });
+
+    const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
+
+    // 4️⃣ Return paginated response
+    callback(null, {
+      page,
+      limit,
+      total,
+      totalPages,
+      recipes: uniqueRecipes
+    });
+
+  } catch (err) {
+    console.error("Error getting recipes by conditions:", err);
+    callback(err, null);
   }
+}
+
 
   static async getFullRecipeById(id, callback) {
 
@@ -780,34 +803,61 @@ class Recipe {
   }
 
 
-  static async searchRecipes(Nom_Recipe, callback) {
+  static async searchRecipes(
+  Nom_Recipe,
+  page = 1,
+  limit = 10,
+  callback
+) {
+  try {
+    const offset = (page - 1) * limit;
+    const fuzzyTerm = `%${Nom_Recipe}%`;
 
-    try {
-      const fuzzyTerm = `%${Nom_Recipe}%`;
+    // 1️⃣ count total results
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM "Recipe" WHERE "Nom_Recipe" ILIKE $1',
+      [fuzzyTerm]
+    );
 
-      // Query to search for recipes by name
-      const result = await pool.query(
-        'SELECT * FROM "Recipe" WHERE "Nom_Recipe" ILIKE $1',
-        [fuzzyTerm]
-      );
+    const total = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(total / limit);
 
-      const recipes = result.rows.map((row) => {
-        return new Recipe(
-          row.Id_recipe,
-          row.Nom_Recipe,
-          row.Icon_recipe,
-          row.Fav_recipe,
-          row.unique_key_recipe,
-          row.Frk_user
-        );
-      });
+    // 2️⃣ fetch page
+    const result = await pool.query(
+      `
+      SELECT * FROM "Recipe"
+      WHERE "Nom_Recipe" ILIKE $1
+      ORDER BY "Id_recipe" DESC
+      LIMIT $2 OFFSET $3
+      `,
+      [fuzzyTerm, limit, offset]
+    );
 
-      callback(null, recipes);
-    } catch (err) {
-      console.error("Error searching recipes:", err);
-      callback(err, null);
-    }
+    const recipes = result.rows.map(row =>
+      new Recipe(
+        row.Id_recipe,
+        row.Nom_Recipe,
+        row.Icon_recipe,
+        row.Fav_recipe,
+        row.unique_key_recipe,
+        row.Frk_user
+      )
+    );
+
+    callback(null, {
+      page,
+      limit,
+      total,
+      totalPages,
+      recipes
+    });
+
+  } catch (err) {
+    console.error("Error searching recipes:", err);
+    callback(err, null);
   }
+}
+
 
 
   static async updateRecipeWithDetails(recipeData, callback) {
