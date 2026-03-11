@@ -132,8 +132,9 @@ router.post("/recipe", validateRecipe.validateCreateRecipe, async (req, res) => 
 }
 );
 
-router.get("/filters/recipes", (req, res) => {
+router.get("/conditions/recipes", (req, res) => {
   const conditions = { ...req.query }; // all query params
+  console.log(conditions);
   const page = parseInt(conditions.page) || 1;
   const limit = parseInt(conditions.limit) || 10;
   const offset = (page - 1) * limit;
@@ -228,7 +229,7 @@ router.get("/user/:username", validateRecipe.validateGetByUsernameRecipe, (req, 
 );
 
 router.get("/search/nom", (req, res) => {
-  const searchTerm = req.query.key || "";
+  const searchTerm = req.query.key || "";  
   const page = parseInt(req.query.page) || 1;      // default page 1
   const limit = parseInt(req.query.limit) || 10;   // default 10 per page
 
