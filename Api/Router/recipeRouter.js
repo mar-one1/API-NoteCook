@@ -149,6 +149,8 @@ router.get("/conditions/recipes", (req, res) => {
     }
 
     const { recipes, total } = data; // data from your method
+      console.log(data);
+      console.log(recipes);
 
     if (!recipes || recipes.length === 0) {
       return res.status(404).json({ error: "Recipes not found" });

@@ -336,8 +336,11 @@ class Recipe {
   }
 }
 
-  static async getRecipesByConditions(conditions, page = 1, limit = 10, callback) {
+  static async getRecipesByConditions(conditions, limit = 10, page = 1, callback) {
   try {
+
+    limit = Math.max(1, limit);
+    page = Math.max(1, page);
 
     let baseQuery = `
       FROM "Recipe"
@@ -347,23 +350,29 @@ class Recipe {
       LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
     `;
 
-    let whereClause = "";
+    let whereParts = [];
     let params = [];
 
+    // 🔍 Search
     if (conditions.searchText) {
-      whereClause = `
-        WHERE (
-          "Recipe"."Nom_Recipe" ILIKE $1 OR
-          "DetailRecipe"."Dt_recipe" ILIKE $1 OR
-          "IngredientRecipe"."Ingredient_recipe" ILIKE $1 OR
-          "StepRecipe"."Detail_step_recipe" ILIKE $1 OR
-          "ReviewRecipe"."Detail_review_recipe" ILIKE $1
-        )
-      `;
       params.push(`%${conditions.searchText}%`);
+      whereParts.push(`
+        (
+          "Recipe"."Nom_Recipe" ILIKE $${params.length} OR
+          "DetailRecipe"."Dt_recipe" ILIKE $${params.length} OR
+          "IngredientRecipe"."Ingredient_recipe" ILIKE $${params.length} OR
+          "StepRecipe"."Detail_step_recipe" ILIKE $${params.length} OR
+          "ReviewRecipe"."Detail_review_recipe" ILIKE $${params.length}
+        )
+      `);
     }
 
-    // count query
+    // 🧠 build WHERE safely
+    const whereClause = whereParts.length > 0
+      ? `WHERE ${whereParts.join(" AND ")}`
+      : "";
+
+    // 📊 Count query
     const countQuery = `
       SELECT COUNT(DISTINCT "Recipe"."Id_recipe") as total
       ${baseQuery}
@@ -371,30 +380,42 @@ class Recipe {
     `;
 
     const countResult = await pool.query(countQuery, params);
-    const total = parseInt(countResult.rows[0].total);
+    const total = parseInt(countResult.rows[0].total, 10);
     const totalPages = Math.ceil(total / limit);
 
-    // pagination
+    // 📄 Pagination
     const offset = (page - 1) * limit;
+
+    // add limit + offset params
+    params.push(limit);
+    params.push(offset);
 
     const query = `
       SELECT DISTINCT "Recipe".*
       ${baseQuery}
       ${whereClause}
       ORDER BY "Recipe"."Id_recipe" DESC
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
-
-    params.push(limit, offset);
 
     const result = await pool.query(query, params);
 
+    const recipes = result.rows.map(row => {
+      return new Recipe(
+        row.Id_recipe,
+        row.Nom_Recipe,
+        row.Icon_recipe,
+        row.Fav_recipe,
+        row.unique_key_recipe,
+        row.Frk_user
+      );
+    });
     callback(null, {
       page,
       limit,
       total,
       totalPages,
-      recipes: result.rows
+      recipes
     });
 
   } catch (err) {
