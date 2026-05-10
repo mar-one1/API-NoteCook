@@ -133,39 +133,33 @@ router.post("/recipe", validateRecipe.validateCreateRecipe, async (req, res) => 
 );
 
 router.get("/conditions/recipes", (req, res) => {
-  const conditions = { ...req.query }; // all query params
-  console.log(conditions);
-  const page = parseInt(conditions.page) || 1;
-  const limit = parseInt(conditions.limit) || 10;
-  const offset = (page - 1) * limit;
 
-  // Remove pagination params from conditions so they don't go to SQL
+  const conditions = { ...req.query };
+
+  const page = parseInt(conditions.page) || 1;
+
+  const limit = parseInt(conditions.limit) || 10;
+
   delete conditions.page;
   delete conditions.limit;
+  console.log(conditions);
+  
+  Recipe.getRecipesByConditions(
+    conditions,
+    limit,
+    page,
+    (err, data) => {
 
-  Recipe.getRecipesByConditions(conditions, limit, offset, (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-
-    const { recipes, total } = data; // data from your method
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
       console.log(data);
-      console.log(recipes);
-
-    if (!recipes || recipes.length === 0) {
-      return res.status(404).json({ error: "Recipes not found" });
+      
+      res.json(data);
     }
-
-    const totalPages = Math.ceil(total / limit);
-
-    res.json({
-      page,
-      limit,
-      total,
-      totalPages,
-      recipes
-    });
-  });
+  );
 });
 
 

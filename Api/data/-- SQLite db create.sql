@@ -222,6 +222,16 @@ CREATE TABLE "Recipe" (
     "Frk_categorie" INTEGER,
     FOREIGN KEY ("Frk_user") REFERENCES "User" ("Id_user") ON DELETE CASCADE
 );
+ALTER TABLE "Recipe"
+ADD COLUMN source TEXT DEFAULT 'local';
+ALTER TABLE "Recipe"
+ADD COLUMN external_id TEXT;
+CREATE INDEX idx_recipe_name
+ON "Recipe" ("Nom_Recipe");
+ALTER TABLE "Recipe"
+ADD COLUMN tags TEXT[];
+CREATE INDEX idx_recipe_search
+ON "Recipe" USING GIN(to_tsvector('english', "Nom_Recipe"));
 -- Create the DetailRecipe table
 CREATE TABLE "DetailRecipe" (
     "Id_detail_recipe" SERIAL PRIMARY KEY,

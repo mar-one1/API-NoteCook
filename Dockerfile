@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Use an official Node.js runtime as a parent image
-ARG NODE_VERSION=18
+ARG NODE_VERSION=20
 FROM node:${NODE_VERSION}-alpine
 
 # Use production node environment by default
@@ -12,7 +12,7 @@ WORKDIR /usr/src/app
 
 # Ensure the SQLite database file and directory are writable
 # This step should come after the working directory is set and files are copied
-# because the directory won't exist until then
+# because the directory woan't exist until then
 COPY . .
 
 RUN chmod -R 777 /usr/src/app/Api
