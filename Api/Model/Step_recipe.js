@@ -150,7 +150,7 @@ class StepRecipe {
         console.log("Old path is base64 data, skipping image update.");
         return callback(null, imagebyte);
       }
-      
+
       if (oldPath) {
         StepRecipe.deleteimage(oldPath, (err, message) => {
           if (err) {
@@ -169,32 +169,121 @@ class StepRecipe {
       callback(err);
     }
   }
+  // New method to update step image and delete old one from Cloudinary
+  static async updateStepImage(stepId, imageUrl, publicId) {
+    try {
 
-    static deleteimage(pathimage, callback = () => { }) { // Default empty callback
-      const filePathToDelete = "./public/data/uploads/" + pathimage;
-      try {
-        console.log("path for delete " + filePathToDelete);
-        fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
-          if (err) {
-            console.error("File does not exist or cannot be accessed.");
-            return callback(err);  // Pass error to the callback
-          }
-  
-          // File exists, proceed to delete
-          fs.unlink(filePathToDelete, (unlinkErr) => {
-            if (unlinkErr) {
-              console.error("Error deleting file:", unlinkErr);
-              return callback(unlinkErr);  // Pass error to the callback
-            }
-            console.log("File deleted successfully.");
-            callback(null, "File deleted successfully.");  // Success message
-          });
-        });
-      } catch (err) {
-        console.error("Error deleting image step: " + filePathToDelete, err);
-        callback(err);  // Pass error to the callback
+      // 1. Get old image public_id
+      const res = await pool.query(
+        `SELECT cloudinary_image_public_id
+       FROM "StepRecipe"
+       WHERE "Id_step_recipe" = $1`,
+        [stepId]
+      );
+
+      if (res.rows.length === 0) {
+        throw new Error("Step not found");
       }
+
+      const oldPublicId = res.rows[0].cloudinary_image_public_id;
+
+      // 2. Update DB
+      const updateRes = await pool.query(
+        `UPDATE "StepRecipe"
+       SET "Image_step_recipe" = $1,
+           cloudinary_image_public_id = $2
+       WHERE "Id_step_recipe" = $3
+       RETURNING *`,
+        [imageUrl, publicId, stepId]
+      );
+
+      // 3. Delete old image from Cloudinary
+      if (oldPublicId) {
+        const cloudinary = require("../config/cloudinary");
+
+        await cloudinary.uploader.destroy(oldPublicId, {
+          resource_type: "image",
+        });
+      }
+
+      return updateRes.rows[0];
+
+    } catch (err) {
+      console.error("Error updating step image:", err);
+      throw err;
     }
+  }
+
+
+  static async updateStepVideo(stepId, videoUrl, publicId) {
+    try {
+
+      // get old video public_id
+      const res = await pool.query(
+        `SELECT cloudinary_video_public_id
+       FROM "StepRecipe"
+       WHERE "Id_step_recipe" = $1`,
+        [stepId]
+      );
+
+      if (res.rows.length === 0) {
+        throw new Error("Step not found");
+      }
+
+      const oldPublicId = res.rows[0].cloudinary_video_public_id;
+
+      // update DB
+      const updateRes = await pool.query(
+        `UPDATE "StepRecipe"
+       SET "Video_step_recipe" = $1,
+           cloudinary_video_public_id = $2
+       WHERE "Id_step_recipe" = $3
+       RETURNING *`,
+        [videoUrl, publicId, stepId]
+      );
+
+      // delete old video from Cloudinary
+      if (oldPublicId) {
+        const cloudinary = require("../config/cloudinary");
+
+        await cloudinary.uploader.destroy(oldPublicId, {
+          resource_type: "video", // 🔥 IMPORTANT
+        });
+      }
+
+      return updateRes.rows[0];
+
+    } catch (err) {
+      console.error("Error updating step video:", err);
+      throw err;
+    }
+  }
+
+  static deleteimage(pathimage, callback = () => { }) { // Default empty callback
+    const filePathToDelete = "./public/data/uploads/" + pathimage;
+    try {
+      console.log("path for delete " + filePathToDelete);
+      fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
+        if (err) {
+          console.error("File does not exist or cannot be accessed.");
+          return callback(err);  // Pass error to the callback
+        }
+
+        // File exists, proceed to delete
+        fs.unlink(filePathToDelete, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error("Error deleting file:", unlinkErr);
+            return callback(unlinkErr);  // Pass error to the callback
+          }
+          console.log("File deleted successfully.");
+          callback(null, "File deleted successfully.");  // Success message
+        });
+      });
+    } catch (err) {
+      console.error("Error deleting image step: " + filePathToDelete, err);
+      callback(err);  // Pass error to the callback
+    }
+  }
 }
 
 module.exports = StepRecipe;

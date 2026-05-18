@@ -232,6 +232,14 @@ ALTER TABLE "Recipe"
 ADD COLUMN tags TEXT[];
 CREATE INDEX idx_recipe_search
 ON "Recipe" USING GIN(to_tsvector('english', "Nom_Recipe"));
+-- for cloainary i add this column 
+ALTER TABLE "Recipe"
+ADD COLUMN cloudinary_public_id TEXT;
+ALTER TABLE "Recipe"
+ADD COLUMN image_width INTEGER;
+ALTER TABLE "Recipe"
+ADD COLUMN image_height INTEGER;
+---------//-----------------//--------
 -- Create the DetailRecipe table
 CREATE TABLE "DetailRecipe" (
     "Id_detail_recipe" SERIAL PRIMARY KEY,
@@ -277,6 +285,13 @@ CREATE TABLE "StepRecipe" (
     "FRK_recipe" INTEGER,
     FOREIGN KEY ("FRK_recipe") REFERENCES "Recipe"("Id_recipe") ON DELETE CASCADE
 );
+------- add for cloudinary ---------------
+ALTER TABLE "StepRecipe"
+ADD COLUMN "Video_step_recipe" TEXT;
+ALTER TABLE "StepRecipe"
+ADD COLUMN "cloudinary_image_public_id" TEXT;
+ALTER TABLE "StepRecipe"
+ADD COLUMN "cloudinary_video_public_id" TEXT;
 -- Create the Produit table
 CREATE TABLE "Produit" (
     "Id_Produit" SERIAL PRIMARY KEY,

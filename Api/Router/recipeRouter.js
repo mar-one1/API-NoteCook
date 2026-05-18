@@ -8,6 +8,8 @@ const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const validateRecipe = require("../validators/validateRecipe");
 const upload = multer({ storage: multer.memoryStorage() });
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
@@ -41,8 +43,8 @@ router.delete("/delete/:path", (req, res) => {
 });
 
 const { processUploadedFile } = require('../utils/fileUpload');
-
-router.post("/upload/:id", upload.single("image"), async (req, res) => {
+// Upload recipe image bytes
+/*router.post("/upload/:id", upload.single("image"), async (req, res) => {
   const id = req.params.id;
   console.log(req.body);
   
@@ -56,7 +58,7 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
     const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
     // Call the method to update recipe image
-    await Recipe.updateRecipeImage(id, imageUrl, (err, result) => {
+    await Recipe.updateRecipeImageByte(id, imageUrl, (err, result) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -65,6 +67,99 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
   } catch (err) {
     console.error('Error processing upload:', err);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+*/
+
+router.post("/upload/:id", upload.single("image"), async (req, res) => {
+
+  const id = req.params.id;
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "No file uploaded",
+    });
+  }
+
+  try {
+
+    // 1. Upload to Cloudinary (clean helper usage)
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "recipes/images",
+      "image"
+    );
+
+    // 2. Update DB (NO CALLBACK)
+    const updatedRecipe = await Recipe.updateRecipeImageCloudinary(
+      id,
+      result.secure_url,
+      result.public_id
+    );
+
+    // 3. Response
+    res.status(200).json({
+      success: true,
+      imageUrl: result.secure_url,
+      cloudinary_id: result.public_id,
+      data: updatedRecipe,
+    });
+
+  } catch (err) {
+
+    console.error("Cloudinary Upload Error:", err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+router.post("/upload-video/:id", upload.single("video"), async (req, res) => {
+
+  const id = req.params.id;
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "No video uploaded",
+    });
+  }
+
+  try {
+
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "recipes/videos",
+      "video" // 🔥 IMPORTANT
+    );
+
+    const videoUrl = result.secure_url;
+    const publicId = result.public_id;
+
+    const updated = await Recipe.updateRecipeVideoCloudinary(
+      id,
+      videoUrl,
+      publicId
+    );
+
+    res.status(200).json({
+      success: true,
+      videoUrl,
+      cloudinary_id: publicId,
+      data: updated,
+    });
+
+  } catch (err) {
+
+    console.error("Video upload error:", err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
 });
 
