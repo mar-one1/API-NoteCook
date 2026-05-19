@@ -10,6 +10,7 @@ const validateRecipe = require("../validators/validateRecipe");
 const upload = multer({ storage: multer.memoryStorage() });
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
@@ -74,7 +75,7 @@ const { processUploadedFile } = require('../utils/fileUpload');
 router.post("/upload/:id", upload.single("image"), async (req, res) => {
 
   const id = req.params.id;
-
+console.log(req.headers['content-length']);
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -90,6 +91,8 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
       "recipes/images",
       "image"
     );
+    console.log(result);
+    
 
     // 2. Update DB (NO CALLBACK)
     const updatedRecipe = await Recipe.updateRecipeImageCloudinary(
@@ -97,6 +100,8 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
       result.secure_url,
       result.public_id
     );
+    console.log(updatedRecipe);
+    
 
     // 3. Response
     res.status(200).json({
@@ -109,7 +114,7 @@ router.post("/upload/:id", upload.single("image"), async (req, res) => {
   } catch (err) {
 
     console.error("Cloudinary Upload Error:", err);
-
+console.log(err);
     res.status(500).json({
       success: false,
       error: err.message,

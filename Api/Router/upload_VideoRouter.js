@@ -1,3 +1,4 @@
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 router.post(
   "/upload-video",
   upload.single("video"),
