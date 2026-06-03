@@ -1,6 +1,7 @@
 node_modules/
 .vercel
 .env*
+.config*
 
 # Vercel & Netlify
 .vercel

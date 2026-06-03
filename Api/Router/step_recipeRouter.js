@@ -3,6 +3,7 @@ const router = express.Router();
 const StepRecipe = require("../Model/Step_recipe"); // Import the StepRecipe model
 const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage() });
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 
 // Create a step recipe
 router.post("/", (req, res) => {
