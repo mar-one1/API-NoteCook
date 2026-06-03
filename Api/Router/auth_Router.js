@@ -87,7 +87,10 @@ authRouter.post('/register', validateUser.validateUserRegistration, async (req, 
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
+  // Hash new password
+  if(!password.startsWith("$2b$")) {
+    password = await bcrypt.hash(password, 10);
+  }
   // Create the user in the database
   User.createUser(
   username,
@@ -146,10 +149,8 @@ authRouter.post("/change-password", async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: "Old password incorrect" });
     }
-
     // Hash new password
     const hashed = await bcrypt.hash(new_password, 10);
-
     // Update password + disable must change
     await client.query(
       `UPDATE "User"
@@ -157,7 +158,7 @@ authRouter.post("/change-password", async (req, res) => {
            "force_password_change" = FALSE
        WHERE "Id_user" = $2`,
       [hashed, user_id]
-    );
+    ); 
 
     res.status(200).json({ status: "SUCCESS", message: "Password updated" });
 
