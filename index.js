@@ -13,8 +13,6 @@ const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cloudinary = require("./Api/config/cloudinary");
-require("dotenv").config({ path: ".config" });
-
 const allowedOrigins = [
     'http://localhost:3000' 
   ];
@@ -158,6 +156,7 @@ app.use(express.urlencoded({
 }));
 
 // Initialize Swagger documentation
+// Swagger setup
 swaggerSetup(app);
 
 app.use('/auth', authRouter);

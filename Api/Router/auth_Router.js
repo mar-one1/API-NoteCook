@@ -5,14 +5,12 @@ const bodyParser = require("body-parser");
 const pool = require("../data/database"); // Import your PostgreSQL pool
 const User = require('../Model/User');
 // Secret key for JWT token (change this to a secure value in production)
-const config = require('../../.config');
 const { body, validationResult } = require('express-validator');
 const validateUser = require('../validators/validateUser');
-const secretKey = config.JWT_SECRET;
+require("dotenv").config();
+const secretKey = process.env.JWT_SECRET;
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
-
-
 
 // Login route
 authRouter.post("/login", async (req, res) => {
@@ -43,7 +41,7 @@ authRouter.post("/login", async (req, res) => {
         status: "PASSWORD_CHANGE_REQUIRED",
         user_id: user.Id_user
       });
-    }    
+    }
 
     // Normal login → Generate JWT
     const token = jwt.sign(
@@ -64,72 +62,69 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-authRouter.post('/register', validateUser.validateUserRegistration, async (req, res) => {
+authRouter.post(
+  "/register",
+  validateUser.validateUserRegistration,
+  async (req, res) => {
+    const {
+      username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      password,
+      grade,
+      status,
+      url,
+    } = req.body;
 
-  // Extract user data from the request body
-  const {
-    username,
-    firstname,
-    lastname,
-    birthday,
-    email,
-    phoneNumber,
-    icon,
-    password,
-    grade,
-    status,
-    url,
-    unique_key_user,
-  } = req.body;
-
-  // Check for validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  // Hash new password
-  if(!password.startsWith("$2b$")) {
-    password = await bcrypt.hash(password, 10);
-  }
-  // Create the user in the database
-  User.createUser(
-  username,
-  firstname,
-  lastname,
-  birthday,
-  email,
-  phoneNumber,
-  icon,
-  password,
-  grade,
-  status,
-  url,
-  unique_key_user,
-  (err, newUser) => {
-    
-    if (err) {
-      if (err.message === 'User already exists') {
-        return res.status(409).json({ error: 'User already exists' });
-      }
-      else {
-      return res.status(500).json({ error: err.message });
-      }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-    // Normal login → Generate JWT
-    const token = jwt.sign(
-      { id: newUser.id_user, username: newUser.username },
-      secretKey,
-      { expiresIn: "1h" }
-    );
-    res.status(201).json({ newUser, token });
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      User.createUser(
+        username,
+        firstname,
+        lastname,
+        birthday,
+        email,
+        phoneNumber,
+        icon,
+        hashedPassword,
+        grade,
+        status,
+        url,
+        (err, newUser) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+
+          const token = jwt.sign(
+            { id: newUser.id_user, username: newUser.username },
+            secretKey,
+            { expiresIn: "1h" }
+          );
+
+          return res.status(201).json({ newUser, token });
+        }
+      );
+
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
-  );
-});
+);
 
 
 authRouter.post("/change-password", async (req, res) => {
   const { user_id, old_password, new_password } = req.body;
-  
+
   let client;
   try {
     client = await pool.connect();
@@ -158,7 +153,7 @@ authRouter.post("/change-password", async (req, res) => {
            "force_password_change" = FALSE
        WHERE "Id_user" = $2`,
       [hashed, user_id]
-    ); 
+    );
 
     res.status(200).json({ status: "SUCCESS", message: "Password updated" });
 

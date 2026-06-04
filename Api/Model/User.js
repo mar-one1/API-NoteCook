@@ -4,6 +4,7 @@ const saltRounds = 10;
 const fs = require("fs");
 const path = require("path");
 const { isNull } = require("util");
+const crypto = require("crypto");
 
 /**
  * @swagger
@@ -69,72 +70,83 @@ class User {
    *         description: Internal server error
    */
   static async createUser(
-    username,
-    firstname,
-    lastname,
-    birthday,
-    email,
-    phoneNumber,
-    icon,
-    password,
-    grade,
-    status,
-    url,
-    unique_key_user,
-    callback
-  ) {
-    // Getting a pool from the pool
-    try {
-      // Check if the user already exists
-      const checkQuery = 'SELECT * FROM "User" WHERE username = $1';
-      const checkRes = await pool.query(checkQuery, [username]);
-
-      if (checkRes.rows.length > 0) {
-        console.log("User already exists");
-        callback(new Error("User already exists"));
-        return;
-      }
-
-      // User doesn't exist, insert them into the database
-      const insertQuery =
-        'INSERT INTO "User" (username, "Firstname_user", "Lastname_user", "Birthday_user", "Email_user", "Phonenumber_user", "Icon_user", password, "Grade_user", "Status_user","unique_key_user") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *';
-      const insertRes = await pool.query(insertQuery, [
-        username,
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        password,
-        grade,
-        status,
-        unique_key_user
-      ]);
-
-      // Create new user object from the inserted row
-      const newUser = new User(
-        insertRes.rows[0].Id_user,
-        username,
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        password,
-        grade,
-        status,
-        url,
-        unique_key_user
-      );
-
-      callback(null, newUser);
-    } catch (err) {
-      console.error("Error Create User", err);
-      callback(err, null);
-    }
+  username,
+  firstname,
+  lastname,
+  birthday,
+  email,
+  phoneNumber,
+  icon,
+  password,
+  grade,
+  status,
+  url,
+  callback
+) {
+  // safety check
+  if (typeof callback !== "function") {
+    throw new Error("Callback function is required");
   }
+
+  try {
+    const unique_key_user = crypto.randomUUID();
+
+    // 1. Check user exists
+    const checkQuery = 'SELECT * FROM "User" WHERE username = $1';
+    const checkRes = await pool.query(checkQuery, [username]);
+
+    if (checkRes.rows.length > 0) {
+      return callback(new Error("User already exists"));
+    }
+
+    // 2. Insert user
+    const insertQuery = `
+      INSERT INTO "User"
+      (username, "Firstname_user", "Lastname_user", "Birthday_user",
+       "Email_user", "Phonenumber_user", "Icon_user", password,
+       "Grade_user", "Status_user", "unique_key_user")
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      RETURNING *
+    `;
+
+    const insertRes = await pool.query(insertQuery, [
+      username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      password,
+      grade,
+      status,
+      unique_key_user
+    ]);
+
+    const row = insertRes.rows[0];
+
+    // 3. Build response
+    const newUser = {
+      id_user: row.id_user,
+      username: row.username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      grade,
+      status,
+      unique_key_user
+    };
+
+    return callback(null, newUser);
+
+  } catch (err) {
+    console.error("Error Create User", err);
+    return callback(err);
+  }
+}
 
 
   /**
