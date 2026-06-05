@@ -62,10 +62,9 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-authRouter.post(
-  "/register",
-  validateUser.validateUserRegistration,
-  async (req, res) => {
+authRouter.post("/register", async (req, res) => {
+  try {
+
     const {
       username,
       firstname,
@@ -78,48 +77,49 @@ authRouter.post(
       grade,
       status,
       url,
+      unique_key_user,
     } = req.body;
 
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required"
+      });
     }
 
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      User.createUser(
-        username,
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        hashedPassword,
-        grade,
-        status,
-        url,
-        (err, newUser) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
+    const user = await User.createUser(
+      username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      hashedPassword,
+      grade,
+      status,
+      url,
+      unique_key_user,
+    );
 
-          const token = jwt.sign(
-            { id: newUser.id_user, username: newUser.username },
-            secretKey,
-            { expiresIn: "1h" }
-          );
+    return res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: user
+    });
 
-          return res.status(201).json({ newUser, token });
-        }
-      );
+  } catch (error) {
 
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
-    }
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
   }
-);
+});
 
 
 authRouter.post("/change-password", async (req, res) => {

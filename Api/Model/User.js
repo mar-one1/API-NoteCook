@@ -70,46 +70,94 @@ class User {
    *         description: Internal server error
    */
   static async createUser(
-  username,
-  firstname,
-  lastname,
-  birthday,
-  email,
-  phoneNumber,
-  icon,
-  password,
-  grade,
-  status,
-  url,
-  callback
-) {
-  // safety check
-  if (typeof callback !== "function") {
-    throw new Error("Callback function is required");
-  }
+    username,
+    firstname,
+    lastname,
+    birthday,
+    email,
+    phoneNumber,
+    icon,
+    password,
+    grade,
+    status,
+    url,
+    unique_key_user
+  ) {
+    try {
 
-  try {
-    const unique_key_user = crypto.randomUUID();
+    
+      // 2. Check username exists
+      const usernameCheck = await pool.query(
+      'SELECT "Id_user" FROM "User" WHERE username = $1',
+      [username]
+    );
 
-    // 1. Check user exists
-    const checkQuery = 'SELECT * FROM "User" WHERE username = $1';
-    const checkRes = await pool.query(checkQuery, [username]);
-
-    if (checkRes.rows.length > 0) {
-      return callback(new Error("User already exists"));
+    if (usernameCheck.rows.length > 0) {
+      throw new Error("Username already exists");
     }
 
-    // 2. Insert user
+    // 3. Check email exists
+    if (email) {
+      const emailCheck = await pool.query(
+        'SELECT "Id_user" FROM "User" WHERE "Email_user" = $1',
+        [email]
+      );
+
+      if (emailCheck.rows.length > 0) {
+        throw new Error("Email already exists");
+      }
+    }
+
+    // 1. Generate unique key if missing
+      if (unique_key_user === null || unique_key_user === undefined || unique_key_user === "") {
+        unique_key_user = crypto.randomUUID();
+      } else {
+        // 4. Check unique_key_user exists
+        const keyCheck = await pool.query(
+          'SELECT "Id_user" FROM "User" WHERE "unique_key_user" = $1',
+          [unique_key_user]
+        );
+
+        if (keyCheck.rows.length > 0) {
+         throw new Error("Unique key already exists");
+        } else {
+          // regenerate once if collision
+          unique_key_user = crypto.randomUUID();
+
+          const retryCheck = await pool.query(
+            'SELECT "Id_user" FROM "User" WHERE "unique_key_user" = $1',
+            [unique_key_user]
+          );
+
+          if (retryCheck.rows.length > 0) {
+            throw new Error("Failed to generate unique key");
+          }
+        }
+    }
+
+
+
+    // 5. Insert user
     const insertQuery = `
-      INSERT INTO "User"
-      (username, "Firstname_user", "Lastname_user", "Birthday_user",
-       "Email_user", "Phonenumber_user", "Icon_user", password,
-       "Grade_user", "Status_user", "unique_key_user")
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      INSERT INTO "User" (
+        username,
+        "Firstname_user",
+        "Lastname_user",
+        "Birthday_user",
+        "Email_user",
+        "Phonenumber_user",
+        "Icon_user",
+        password,
+        "Grade_user",
+        "Status_user",
+        "Url_image",
+        "unique_key_user"
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
     `;
 
-    const insertRes = await pool.query(insertQuery, [
+    const values = [
       username,
       firstname,
       lastname,
@@ -120,33 +168,20 @@ class User {
       password,
       grade,
       status,
+      url,
       unique_key_user
-    ]);
+    ];
 
-    const row = insertRes.rows[0];
+    const result = await pool.query(insertQuery, values);
 
-    // 3. Build response
-    const newUser = {
-      id_user: row.id_user,
-      username: row.username,
-      firstname,
-      lastname,
-      birthday,
-      email,
-      phoneNumber,
-      icon,
-      grade,
-      status,
-      unique_key_user
-    };
+    return result.rows[0];
 
-    return callback(null, newUser);
-
-  } catch (err) {
-    console.error("Error Create User", err);
-    return callback(err);
+  } catch(error) {
+    console.error("Create User Error:", error);
+    throw error;
   }
 }
+
 
 
   /**
@@ -174,168 +209,168 @@ class User {
    *         description: Internal server error
    */
   static async getUserById(id, callback) {
-    // Getting a pool from the pool
-    try {
-      const query = 'SELECT * FROM "User" WHERE "Id_user" = $1';
-      const res = await pool.query(query, [id]);
+  // Getting a pool from the pool
+  try {
+    const query = 'SELECT * FROM "User" WHERE "Id_user" = $1';
+    const res = await pool.query(query, [id]);
 
-      if (res.rows.length === 0) {
-        callback(null, null); // User not found
-        return;
-      }
-
-      const row = res.rows[0];
-      const user = new User(
-        row.Id_user,
-        row.username,
-        row.Firstname_user,
-        row.Lastname_user,
-        row.Birthday_user,
-        row.Email_user,
-        row.Phonenumber_user,
-        row.Icon_user == null,  // Fix the Icon_user field assignment
-        row.password,
-        row.Grade_user,
-        row.Status_user,
-        row.Url_image,
-        row.unique_key_user
-      );
-      callback(null, user);
-    } catch (err) {
-      console.error("Error getting user by id: " + id, err);
-      callback(err, null);
+    if (res.rows.length === 0) {
+      callback(null, null); // User not found
+      return;
     }
+
+    const row = res.rows[0];
+    const user = new User(
+      row.Id_user,
+      row.username,
+      row.Firstname_user,
+      row.Lastname_user,
+      row.Birthday_user,
+      row.Email_user,
+      row.Phonenumber_user,
+      row.Icon_user == null,  // Fix the Icon_user field assignment
+      row.password,
+      row.Grade_user,
+      row.Status_user,
+      row.Url_image,
+      row.unique_key_user
+    );
+    callback(null, user);
+  } catch (err) {
+    console.error("Error getting user by id: " + id, err);
+    callback(err, null);
   }
+}
 
 
   // Helper function to get all image paths from the database
   static async getAllImagePathsFromDatabase(callback) {
 
-    try {
-      const query = 'SELECT "Url_image" FROM "User"';
-      const res = await pool.query(query);
+  try {
+    const query = 'SELECT "Url_image" FROM "User"';
+    const res = await pool.query(query);
 
-      const paths = res.rows.map((row) => row.Url_image);
-      console.log("Paths getting from db:", paths);
+    const paths = res.rows.map((row) => row.Url_image);
+    console.log("Paths getting from db:", paths);
 
-      callback(null, paths);
-    } catch (err) {
-      console.error("Error getting all image paths from database:", err);
-      callback(err, null);
-    }
+    callback(null, paths);
+  } catch (err) {
+    console.error("Error getting all image paths from database:", err);
+    callback(err, null);
   }
+}
 
 
   static async updateUserImage(username, imageUrl, callback) {
-    try {
-      const query = 'UPDATE "User" SET "Url_image" = $1 WHERE "username" = $2';
-      const res = await pool.query(query, [imageUrl, username]);
+  try {
+    const query = 'UPDATE "User" SET "Url_image" = $1 WHERE "username" = $2';
+    const res = await pool.query(query, [imageUrl, username]);
 
-      if (res.rowCount === 0) {
-        callback(null, null); // No rows updated, user not found
-        return;
-      }
-
-      // Successfully updated user image
-      callback(null, imageUrl);
-      console.log("Image updated:", imageUrl);
-    } catch (err) {
-      console.error("Error updating user image:", err);
-      callback(err, null);
+    if (res.rowCount === 0) {
+      callback(null, null); // No rows updated, user not found
+      return;
     }
+
+    // Successfully updated user image
+    callback(null, imageUrl);
+    console.log("Image updated:", imageUrl);
+  } catch (err) {
+    console.error("Error updating user image:", err);
+    callback(err, null);
   }
+}
 
 
 
   static async getUserImage(username, callback) {
 
-    try {
-      const query = 'SELECT Icon_user FROM "User" WHERE username = $1';
-      const res = await pool.query(query, [username]);
+  try {
+    const query = 'SELECT Icon_user FROM "User" WHERE username = $1';
+    const res = await pool.query(query, [username]);
 
-      if (res.rows.length === 0) {
-        callback(null, null); // User not found
-        return;
-      }
-
-      // Pass the retrieved image URL or binary data to the callback
-      callback(null, res.rows[0].Icon_user);
-    } catch (err) {
-      console.error("Error getting user image", err);
-      callback(err, null);
+    if (res.rows.length === 0) {
+      callback(null, null); // User not found
+      return;
     }
+
+    // Pass the retrieved image URL or binary data to the callback
+    callback(null, res.rows[0].Icon_user);
+  } catch (err) {
+    console.error("Error getting user image", err);
+    callback(err, null);
   }
+}
 
 
   static async getUserByUsername(usernameUser, callback) {
 
-    try {
-      const query = 'SELECT * FROM "User" WHERE username = $1';
-      const res = await pool.query(query, [usernameUser]);
+  try {
+    const query = 'SELECT * FROM "User" WHERE username = $1';
+    const res = await pool.query(query, [usernameUser]);
 
-      if (res.rows.length === 0) {
-        callback(null, null); // User not found
-        return;
-      }
-
-      const row = res.rows[0];
-      const user = new User(
-        row.Id_user,
-        row.username,
-        row.Firstname_user,
-        row.Lastname_user,
-        row.Birthday_user,
-        row.Email_user,
-        row.Phonenumber_user,
-        row.Icon_user== null,  // Icon_user should not be null unless explicitly required
-        row.password,
-        row.Grade_user,
-        row.Status_user,
-        row.Url_image,
-        row.unique_key_user
-      );
-
-      callback(null, user);
-    } catch (err) {
-      console.error("Error getting user by username: " + usernameUser, err);
-      callback(err, null);
+    if (res.rows.length === 0) {
+      callback(null, null); // User not found
+      return;
     }
+
+    const row = res.rows[0];
+    const user = new User(
+      row.Id_user,
+      row.username,
+      row.Firstname_user,
+      row.Lastname_user,
+      row.Birthday_user,
+      row.Email_user,
+      row.Phonenumber_user,
+      row.Icon_user == null,  // Icon_user should not be null unless explicitly required
+      row.password,
+      row.Grade_user,
+      row.Status_user,
+      row.Url_image,
+      row.unique_key_user
+    );
+
+    callback(null, user);
+  } catch (err) {
+    console.error("Error getting user by username: " + usernameUser, err);
+    callback(err, null);
   }
+}
 
 
   static async deleteimage(pathimage, callback) {
-    try {
-      // Skip update if oldPath is base64 string
-      if (pathimage && pathimage.startsWith('data:')) {
-        console.log("Old path is base64 data, skipping image update.");
-        return callback(null, imagebyte);
+  try {
+    // Skip update if oldPath is base64 string
+    if (pathimage && pathimage.startsWith('data:')) {
+      console.log("Old path is base64 data, skipping image update.");
+      return callback(null, imagebyte);
+    }
+    const filePathToDelete = "./public/uploads/" + pathimage; // Replace with the path to the file you want to delete
+    // Check if the file exists
+    console.log("path for delete " + filePathToDelete);
+    fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
+      if (err) {
+        console.error("File does not exist or cannot be accessed.");
+        return;
       }
-      const filePathToDelete = "./public/uploads/" + pathimage; // Replace with the path to the file you want to delete
-      // Check if the file exists
-      console.log("path for delete " + filePathToDelete);
-      fs.access(filePathToDelete, fs.constants.F_OK, (err) => {
-        if (err) {
-          console.error("File does not exist or cannot be accessed.");
+
+      // File exists, proceed to delete
+      fs.unlink(filePathToDelete, (unlinkErr) => {
+        if (unlinkErr) {
+          console.error("Error deleting file:", unlinkErr);
           return;
         }
-
-        // File exists, proceed to delete
-        fs.unlink(filePathToDelete, (unlinkErr) => {
-          if (unlinkErr) {
-            console.error("Error deleting file:", unlinkErr);
-            return;
-          }
-          console.log("File deleted successfully.");
-          callback(null, "File deleted successfully.");
-        });
+        console.log("File deleted successfully.");
+        callback(null, "File deleted successfully.");
       });
-    } catch (err) {
+    });
+  } catch (err) {
 
-      console.error("Error delete image user : " + pathimage, err);
-      callback(err, null);
-    }
+    console.error("Error delete image user : " + pathimage, err);
+    callback(err, null);
   }
-static async getUsers(page = 1, limit = 10, callback) {
+}
+  static async getUsers(page = 1, limit = 10, callback) {
   try {
     page = Number(page) || 1;
     limit = Math.min(Number(limit) || 10, 50);
@@ -369,238 +404,238 @@ static async getUsers(page = 1, limit = 10, callback) {
 }
 
   static async updateUser(
-    UserId,
-    username,
-    firstname,
-    lastname,
-    birthday,
-    email,
-    phoneNumber,
-    icon,
-    password,
-    grade,
-    status,
-    url,
-    unique_key_user,
-    callback
-  ) {
+  UserId,
+  username,
+  firstname,
+  lastname,
+  birthday,
+  email,
+  phoneNumber,
+  icon,
+  password,
+  grade,
+  status,
+  url,
+  unique_key_user,
+  callback
+) {
 
-    try {
-      // If password is being updated, hash it
-      const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : null;
+  try {
+    // If password is being updated, hash it
+    const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : null;
 
-      const query = `UPDATE "User" 
+    const query = `UPDATE "User" 
         SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10, "unique_key_user" = $11
         WHERE Id_user = $12
         RETURNING "Id_user"`;
 
-      const res = await pool.query(query, [
-        firstname, lastname, birthday, email, phoneNumber, icon, hashedPassword || password, grade, status, url, UserId
-      ]);
+    const res = await pool.query(query, [
+      firstname, lastname, birthday, email, phoneNumber, icon, hashedPassword || password, grade, status, url, UserId
+    ]);
 
-      if (res.rowCount === 0) {
-        callback(null, null); // User not found or not updated
-        return;
-      }
-
-      const updatedUser = new User(
-        res.rows[0].id_user,
-        username,
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        hashedPassword || password,
-        grade,
-        status,
-        url,
-        unique_key_user
-      );
-
-      callback(null, updatedUser);
-    } catch (err) {
-      console.error("Error updating user", err);
-      callback(err, null);
+    if (res.rowCount === 0) {
+      callback(null, null); // User not found or not updated
+      return;
     }
+
+    const updatedUser = new User(
+      res.rows[0].id_user,
+      username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      hashedPassword || password,
+      grade,
+      status,
+      url,
+      unique_key_user
+    );
+
+    callback(null, updatedUser);
+  } catch (err) {
+    console.error("Error updating user", err);
+    callback(err, null);
   }
+}
 
   static async deleteUser(id, callback) {
 
-    try {
-      // Delete user image file if needed
-      const queryImage = 'SELECT "Icon_user" FROM "User" WHERE "Id_user" = $1';
-      const resImage = await pool.query(queryImage, [id]);
+  try {
+    // Delete user image file if needed
+    const queryImage = 'SELECT "Icon_user" FROM "User" WHERE "Id_user" = $1';
+    const resImage = await pool.query(queryImage, [id]);
 
-      if (resImage.rows.length === 0) {
-        callback(null, "User not found");
-        return;
-      }
-
-      const imageFilePath = resImage.rows[0].Icon_user;
-      if (imageFilePath) {
-        fs.unlink(path.join(__dirname, 'public', 'uploads', imageFilePath), (err) => {
-          if (err) {
-            console.error("Error deleting image file", err);
-          } else {
-            console.log("Image file deleted");
-          }
-        });
-      }
-
-      // Now delete the user record
-      const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING *';
-      const resDelete = await pool.query(query, [id]);
-
-      if (resDelete.rowCount === 0) {
-        callback(null, "User not found");
-        return;
-      }
-
-      callback(null, `User with ID ${id} deleted successfully`);
-    } catch (err) {
-      console.error("Error deleting user", err);
-      callback(err, null);
+    if (resImage.rows.length === 0) {
+      callback(null, "User not found");
+      return;
     }
+
+    const imageFilePath = resImage.rows[0].Icon_user;
+    if (imageFilePath) {
+      fs.unlink(path.join(__dirname, 'public', 'uploads', imageFilePath), (err) => {
+        if (err) {
+          console.error("Error deleting image file", err);
+        } else {
+          console.log("Image file deleted");
+        }
+      });
+    }
+
+    // Now delete the user record
+    const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING *';
+    const resDelete = await pool.query(query, [id]);
+
+    if (resDelete.rowCount === 0) {
+      callback(null, "User not found");
+      return;
+    }
+
+    callback(null, `User with ID ${id} deleted successfully`);
+  } catch (err) {
+    console.error("Error deleting user", err);
+    callback(err, null);
   }
+}
 
 
 
   static async updateUserByUsername(
-    username,
-    firstname,
-    lastname,
-    birthday,
-    email,
-    phoneNumber,
-    icon,
-    password,
-    grade,
-    status,
-    url,
-    unique_key_user,
-    callback
-  ) {
+  username,
+  firstname,
+  lastname,
+  birthday,
+  email,
+  phoneNumber,
+  icon,
+  password,
+  grade,
+  status,
+  url,
+  unique_key_user,
+  callback
+) {
 
-    try {
-      console.log("test" + username);
+  try {
+    console.log("test" + username);
 
-      const query = `
+    const query = `
         UPDATE "User" 
         SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10, unique_key_user = $11 
         WHERE username = $11 
         RETURNING "Id_user"
       `;
 
-      const values = [
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        password,
-        grade,
-        status,
-        url,
-        unique_key_user,
-        username,
-      ];
+    const values = [
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      password,
+      grade,
+      status,
+      url,
+      unique_key_user,
+      username,
+    ];
 
-      const res = await pool.query(query, values);
+    const res = await pool.query(query, values);
 
-      if (res.rowCount === 0) {
-        const error = new Error("User not found or not updated");
-        callback(error, null);
-        return;
-      }
-
-      const updatedUser = new User(
-        res.rows[0].id_user,
-        username,
-        firstname,
-        lastname,
-        birthday,
-        email,
-        phoneNumber,
-        icon,
-        password,
-        grade,
-        status,
-        url,
-        unique_key_user
-      );
-
-      console.log(updatedUser);
-      callback(null, updatedUser);
-    } catch (err) {
-      console.error("Error updating user by username: " + username, err);
-      callback(err, null);
+    if (res.rowCount === 0) {
+      const error = new Error("User not found or not updated");
+      callback(error, null);
+      return;
     }
+
+    const updatedUser = new User(
+      res.rows[0].id_user,
+      username,
+      firstname,
+      lastname,
+      birthday,
+      email,
+      phoneNumber,
+      icon,
+      password,
+      grade,
+      status,
+      url,
+      unique_key_user
+    );
+
+    console.log(updatedUser);
+    callback(null, updatedUser);
+  } catch (err) {
+    console.error("Error updating user by username: " + username, err);
+    callback(err, null);
   }
+}
 
   static async updateImageUserByUsername(username, icon, callback) {
 
-    try {
-      const query = `
+  try {
+    const query = `
         UPDATE "User" 
         SET "Url_image" = $1 
         WHERE username = $2 
         RETURNING "Id_user", username, "Url_image"
       `;
 
-      const values = [icon, username];
-      const res = await pool.query(query, values);
+    const values = [icon, username];
+    const res = await pool.query(query, values);
 
-      if (res.rowCount === 0) {
-        const error = new Error("User not found or not updated");
-        callback(error, null);
-        return;
-      }
-
-      const updatedUser = new User(
-        res.rows[0].id_user,  // Assuming 'id_user' is the primary key
-        username,
-        null, // The first name, last name, and other fields can be `null` or handled as needed
-        null,
-        null,
-        null,
-        null,
-        icon,
-        null,
-        null,
-        null,
-        null
-      );
-
-      console.log(updatedUser);
-      callback(null, updatedUser);
-    } catch (err) {
-      console.error("Error updating image for user by username: " + username, err);
-      callback(err, null);
+    if (res.rowCount === 0) {
+      const error = new Error("User not found or not updated");
+      callback(error, null);
+      return;
     }
+
+    const updatedUser = new User(
+      res.rows[0].id_user,  // Assuming 'id_user' is the primary key
+      username,
+      null, // The first name, last name, and other fields can be `null` or handled as needed
+      null,
+      null,
+      null,
+      null,
+      icon,
+      null,
+      null,
+      null,
+      null
+    );
+
+    console.log(updatedUser);
+    callback(null, updatedUser);
+  } catch (err) {
+    console.error("Error updating image for user by username: " + username, err);
+    callback(err, null);
   }
+}
 
 
   static async deleteUser(UserId, callback) {
 
-    try {
-      const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING "Id_user"';
+  try {
+    const query = 'DELETE FROM "User" WHERE "Id_user" = $1 RETURNING "Id_user"';
 
-      const res = await pool.query(query, [UserId]);
+    const res = await pool.query(query, [UserId]);
 
-      if (res.rowCount === 0) {
-        callback(null, false); // User not found or not deleted
-        return;
-      }
-
-      callback(null, true); // User deleted successfully
-    } catch (err) {
-      console.error("Error deleting user with ID: " + UserId, err);
-      callback(err, null);
+    if (res.rowCount === 0) {
+      callback(null, false); // User not found or not deleted
+      return;
     }
+
+    callback(null, true); // User deleted successfully
+  } catch (err) {
+    console.error("Error deleting user with ID: " + UserId, err);
+    callback(err, null);
   }
+}
 
 
   // ... (Other methods)
