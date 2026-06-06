@@ -88,7 +88,7 @@ class User {
     
       // 2. Check username exists
       const usernameCheck = await pool.query(
-      'SELECT "Id_user" FROM "User" WHERE username = $1',
+      'SELECT "Id_user" FROM "User" WHERE LOWER("username") = LOWER($1)',
       [username]
     );
 
@@ -263,7 +263,7 @@ class User {
 
   static async updateUserImage(username, imageUrl, callback) {
   try {
-    const query = 'UPDATE "User" SET "Url_image" = $1 WHERE "username" = $2';
+    const query = 'UPDATE "User" SET "Url_image" = $1 WHERE LOWER("username") = LOWER($2)';
     const res = await pool.query(query, [imageUrl, username]);
 
     if (res.rowCount === 0) {
@@ -285,9 +285,8 @@ class User {
   static async getUserImage(username, callback) {
 
   try {
-    const query = 'SELECT Icon_user FROM "User" WHERE username = $1';
+    const query = 'SELECT Icon_user FROM "User" WHERE LOWER("username") = LOWER($1)';
     const res = await pool.query(query, [username]);
-
     if (res.rows.length === 0) {
       callback(null, null); // User not found
       return;
@@ -305,7 +304,7 @@ class User {
   static async getUserByUsername(usernameUser, callback) {
 
   try {
-    const query = 'SELECT * FROM "User" WHERE username = $1';
+    const query = 'SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)';
     const res = await pool.query(query, [usernameUser]);
 
     if (res.rows.length === 0) {
@@ -524,7 +523,7 @@ class User {
     const query = `
         UPDATE "User" 
         SET "Firstname_user" = $1, "Lastname_user" = $2, "Birthday_user" = $3, "Email_user" = $4, "Phonenumber_user" = $5, "Icon_user" = $6, password = $7, "Grade_user" = $8, "Status_user" = $9, "Url_image" = $10, unique_key_user = $11 
-        WHERE username = $11 
+        WHERE LOWER("username") = LOWER($11) 
         RETURNING "Id_user"
       `;
 
@@ -581,7 +580,7 @@ class User {
     const query = `
         UPDATE "User" 
         SET "Url_image" = $1 
-        WHERE username = $2 
+        WHERE LOWER("username") = LOWER($2) 
         RETURNING "Id_user", username, "Url_image"
       `;
 

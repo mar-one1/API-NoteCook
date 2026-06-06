@@ -117,7 +117,7 @@ class Recipe {
       }
 
       // Get the user by username
-      const userQuery = 'SELECT * FROM "User" WHERE "username" = $1';
+      const userQuery = 'SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)';
       pool.query(userQuery, [username], (err, userResult) => {
         if (err) {
           release(); // Release pool back to the pool
@@ -798,7 +798,7 @@ class Recipe {
 
       // Get the user by username
       const userResult = await pool.query(
-        'SELECT * FROM "User" WHERE "username" = $1',
+        'SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)',
         [username]
       );
 

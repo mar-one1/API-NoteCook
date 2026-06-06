@@ -21,7 +21,7 @@ authRouter.post("/login", async (req, res) => {
     client = await pool.connect();
 
     // Find the user
-    const query = `SELECT * FROM "User" WHERE "username" = $1`;
+    const query = `SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)`;
     const { rows } = await client.query(query, [username]);
 
     if (rows.length === 0) {
@@ -62,7 +62,7 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", validateUser.validateUserRegistration, async (req, res) => {
   try {
 
     const {
@@ -80,13 +80,12 @@ authRouter.post("/register", async (req, res) => {
       unique_key_user,
     } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Username and password are required"
-      });
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
