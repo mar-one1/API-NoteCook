@@ -11,6 +11,8 @@ require("dotenv").config();
 const secretKey = process.env.JWT_SECRET;
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Login route
 authRouter.post("/login", async (req, res) => {
@@ -117,6 +119,42 @@ authRouter.post("/register", validateUser.validateUserRegistration, async (req, 
       message: error.message
     });
 
+  }
+});
+
+authRouter.post('/upload/:username', upload.single('image'), async (req, res) => {
+  const username = req.params.username;
+
+  console.log('Request body:', req.body);
+
+  // Check if a file is uploaded
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
+
+  try {
+    // Process the uploaded file and get base64 data
+    const { filename, base64Data } = processUploadedFile(req.file);
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+    console.log('Generated base64 image URL');
+
+    // Update the user's image in the database
+    User.updateUserImage(username, imageUrl, (err, updatedImageUrl) => {
+      if (err) {
+        console.error('Error updating user image:', err);
+        return res.status(500).json({ error: 'Failed to update user image.' });
+      }
+
+      if (!updatedImageUrl) {
+        return res.status(404).json({ error: 'User not found or update failed.' });
+      }
+
+      // Respond with success
+      res.status(200).json(updatedImageUrl);
+    });
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
   }
 });
 
