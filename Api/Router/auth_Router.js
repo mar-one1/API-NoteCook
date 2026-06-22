@@ -12,7 +12,10 @@ const secretKey = process.env.JWT_SECRET;
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
 const multer = require('multer');
+const path = require('path');
 const upload = multer({ storage: multer.memoryStorage() });
+const { processUploadedFile } = require('../utils/fileUpload');
+
 
 // Login route
 authRouter.post("/login", async (req, res) => {
@@ -27,14 +30,14 @@ authRouter.post("/login", async (req, res) => {
     const { rows } = await client.query(query, [username]);
 
     if (rows.length === 0) {
-      return res.status(406).json({ error: "User not found" });
+      return res.status(406).json({ error: "Invalid username or password" });
     }
 
     const user = rows[0];
     // Password check
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Incorrect password" });
+      return res.status(401).json({ error: "Invalid username or password" });
     }
 
     // ✔ MUST CHANGE PASSWORD LOGIC
@@ -42,6 +45,12 @@ authRouter.post("/login", async (req, res) => {
       return res.status(200).json({
         status: "PASSWORD_CHANGE_REQUIRED",
         user_id: user.Id_user
+      });
+    }
+
+    if (user.status === "active") {
+      return res.status(403).json({
+        error: "Account disabled"
       });
     }
 
@@ -87,7 +96,7 @@ authRouter.post("/register", validateUser.validateUserRegistration, async (req, 
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -157,6 +166,8 @@ authRouter.post('/upload/:username', upload.single('image'), async (req, res) =>
     res.status(500).json({ error: 'An unexpected error occurred.' });
   }
 });
+
+
 
 
 authRouter.post("/change-password", async (req, res) => {
