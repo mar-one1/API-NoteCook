@@ -12,7 +12,7 @@ const { users } = require('./Api/handlers/socketHandler');
 const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-
+const cloudinary = require("./Api/config/cloudinary");
 const allowedOrigins = [
     'http://localhost:3000' 
   ];
@@ -40,6 +40,45 @@ const limiter = rateLimit({
   }
 });
 app.use(limiter);
+app.get("/cloudinary-ping", async (req, res) => {
+  try {
+    const result = await cloudinary.api.ping();
+
+    res.json({
+      success: true,
+      result
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+// test upload from URL
+app.get("/test-upload", async (req, res) => {
+  try {
+    const result = await cloudinary.uploader.upload(
+      "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      {
+        folder: "test"
+      }
+    );
+
+    res.json({
+      success: true,
+      url: result.secure_url,
+      public_id: result.public_id
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 
 app.get('/test-ip', (req, res) => {
@@ -117,6 +156,7 @@ app.use(express.urlencoded({
 }));
 
 // Initialize Swagger documentation
+// Swagger setup
 swaggerSetup(app);
 
 app.use('/auth', authRouter);

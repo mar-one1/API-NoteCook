@@ -117,7 +117,7 @@ class Recipe {
       }
 
       // Get the user by username
-      const userQuery = 'SELECT * FROM "User" WHERE "username" = $1';
+      const userQuery = 'SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)';
       pool.query(userQuery, [username], (err, userResult) => {
         if (err) {
           release(); // Release pool back to the pool
@@ -574,7 +574,7 @@ class Recipe {
     }
   }
 
-  static async updateRecipeImage(unique, imagebyte, callback = () => { }) {
+  static async updateRecipeImageByte(unique, imagebyte, callback = () => { }) {
     try {
       const res = await pool.query(
         `SELECT "Icon_recipe" FROM "Recipe" WHERE "unique_key_recipe" = $1`,
@@ -620,6 +620,50 @@ class Recipe {
       callback(err);
     }
   }
+
+  static async updateRecipeImageCloudinary(unique, imageUrl, publicId) {
+  try {
+
+    // 1. Get old public_id
+    const res = await pool.query(
+      `SELECT "cloudinary_public_id"
+       FROM "Recipe"
+       WHERE "unique_key_recipe" = $1`,
+      [unique]
+    );
+
+    if (res.rows.length === 0) {
+      throw new Error("Recipe not found");
+    }
+
+    const oldPublicId = res.rows[0].cloudinary_public_id;
+
+    // 2. Update DB
+    const updateRes = await pool.query(
+      `UPDATE "Recipe"
+       SET "Icon_recipe" = $1,
+           "cloudinary_public_id" = $2
+       WHERE "unique_key_recipe" = $3
+       RETURNING *`,
+      [imageUrl, publicId, unique]
+    );
+
+    // 3. Delete old image from Cloudinary
+    if (oldPublicId) {
+      const cloudinary = require("../config/cloudinary");
+
+      await cloudinary.uploader.destroy(oldPublicId, {
+        resource_type: "image",
+      });
+    }
+
+    return updateRes.rows[0];
+
+  } catch (err) {
+    console.error("Error updating recipe image:", err);
+    throw err;
+  }
+}
 
 
  static async getAllRecipes(page = 1, limit = 10, callback) {
@@ -754,7 +798,7 @@ class Recipe {
 
       // Get the user by username
       const userResult = await pool.query(
-        'SELECT * FROM "User" WHERE "username" = $1',
+        'SELECT * FROM "User" WHERE LOWER("username") = LOWER($1)',
         [username]
       );
 
