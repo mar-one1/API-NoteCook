@@ -1,13 +1,18 @@
 [build]
-    command = "npm install"
-    functions = "functions"
+  command = "npm install"
+  functions = "functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[redirects]]
-    from = "/*"
-    to = "/.netlify/functions/api"
-    status = 200
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
 
 [dev]
   command = "npm run dev"
+  functions = "functions"
   port = 8888
-  publish = "/Api"  # or "public" or wherever your static files are
