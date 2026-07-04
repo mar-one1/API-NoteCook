@@ -189,13 +189,17 @@ app.get('/protected', verifyToken, (req, res) => {
   }
 });
 
-// Start the server if not in serverless environment
-server.listen(port, () => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`🚀 Server is running at http://localhost:${port}/`);
-  } else {
-    console.log(`🚀 Server running in production`);
-  }
-});
+// Start the server if running as a real server (not inside Netlify Functions)
+if (!process.env.NETLIFY || process.env.NETLIFY_FUNCTION_NAME === undefined) {
+  server.listen(port, () => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🚀 Server is running at http://localhost:${port}//`);
+    } else {
+      console.log(`🚀 Server running in production`);
+    }
+  });
+}
+
 // Export the Express app for serverless function
 module.exports = app;
+

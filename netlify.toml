@@ -1,8 +1,9 @@
 [build]
   command = "npm install"
-  functions = "functions"
   publish = "public"
 
+# Netlify Functions live under netlify/functions by default.
+# This config keeps that convention.
 [functions]
   node_bundler = "esbuild"
 
@@ -11,6 +12,7 @@
   to = "/.netlify/functions/api/:splat"
   status = 200
   force = true
+
 
 [dev]
   command = "npm run dev"
