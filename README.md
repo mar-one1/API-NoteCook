@@ -139,7 +139,6 @@ This API is configured to run on **Vercel** and uses **NeonDB** (PostgreSQL) in 
 Make sure the following environment variables are set on Vercel:
 
 * `DATABASE_URL`
-* `JWT_SECRET`
 * `NODE_ENV=production`
 * `VERCEL_PORT`
 
