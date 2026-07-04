@@ -13,7 +13,7 @@ const { setupSocketHandlers } = require('./Api/handlers/socketHandler');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cloudinary = require("./Api/config/cloudinary");
-// test merge test é
+// test merge test 3
 const allowedOrigins = [
     'http://localhost:3000' 
   ];
