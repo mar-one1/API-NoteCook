@@ -13,6 +13,12 @@
   status = 200
   force = true
 
+# Forward all other API routes (your Express app registers /protected etc.)
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
 
 [dev]
   command = "npm run dev"
