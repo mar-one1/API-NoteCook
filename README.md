@@ -38,8 +38,6 @@ Create a `.env` file at the root of the project and fill in the following values
 # SERVER
 SERVER_HOST=127.0.0.1
 SERVER_PORT=3000
-JWT_SECRET=your_jwt_secret
-
 # MONGO
 MONGO_HOST=localhost
 MONGO_PORT=27017
