@@ -1,26 +1,13 @@
 [build]
-  command = "npm install"
-  publish = "public"
-
-# Netlify Functions live under netlify/functions by default.
-# This config keeps that convention.
-[functions]
-  node_bundler = "esbuild"
+    command = "npm install"
+    functions = "functions"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
-
-# Forward all other API routes (your Express app registers /protected etc.)
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
+    from = "/*"
+    to = "/.netlify/functions/api"
+    status = 200
 
 [dev]
   command = "npm run dev"
-  functions = "functions"
   port = 8888
+  publish = "/Api"  # or "public" or wherever your static files are
