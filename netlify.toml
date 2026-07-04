@@ -1,7 +1,5 @@
 [build]
-  command = "npm install"
   functions = "functions"
-  publish = "public"
 
 [functions]
   node_bundler = "esbuild"
@@ -10,9 +8,3 @@
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
-  force = true
-
-[dev]
-  command = "npm run dev"
-  functions = "functions"
-  port = 8888
