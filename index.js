@@ -184,9 +184,9 @@ app.get('/isUserConnected/:userId', (req, res) => {
 // Example of a protected route
 app.get('/protected', verifyToken, (req, res) => {
   if (req.tokenRefreshed) {
-    res.status(201).json({ message: 'This route is protected and token was refreshed', user: req.user, token: req.newAccessToken });
+    res.status(201).json({ message: 'This route is protected and token was refreshed', user: req.user.username, token: req.newAccessToken });
   } else {
-    res.status(200).json({ message: 'This route is protected', user: req.user, token: req.newAccessToken });
+    res.status(200).json({ message: 'This route is protected', user: req.user.username, token: req.newAccessToken });
   }
 });
 
