@@ -14,7 +14,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const allowedOrigins = [
-    'http://localhost:3000' 
+    'http://localhost:3000',
+    'https://notecookapi.netlify.app'
   ];
 // TRUST PROXY (IMPORTANT)
 app.set('trust proxy', 1);
