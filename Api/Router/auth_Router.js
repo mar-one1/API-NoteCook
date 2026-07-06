@@ -7,15 +7,15 @@ const User = require('../Model/User');
 // Secret key for JWT token (change this to a secure value in production)
 const { body, validationResult } = require('express-validator');
 const validateUser = require('../validators/validateUser');
-require("dotenv").config();
-const secretKey = process.env.JWT_SECRET;
+const dotenv = require('dotenv'); // Load environment variables from .env file
+dotenv.config(); // Ensure the environment variables are loaded
 const authRouter = express.Router();
 authRouter.use(bodyParser.json());
 const multer = require('multer');
 const path = require('path');
 const upload = multer({ storage: multer.memoryStorage() });
 const { processUploadedFile } = require('../utils/fileUpload');
-
+const secretKey = process.env.JWT_SECRET;
 
 // Login route
 authRouter.post("/login", async (req, res) => {
