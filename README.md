@@ -162,8 +162,8 @@ npm start       # Start server (production)
 ## 🧑‍💻 Author
 
 **Marwane Rays**
-📧 Contact: [your\_email@example.com](mailto:your_email@example.com)
-💼 GitHub: [github.com/yourusername](https://github.com/yourusername)
+📧 Contact: [mar-one1\_email@example.com](mailto:your_email@example.com)
+💼 GitHub: [github.com/yourusername](https://github.com/mar-one1)
 
 ---
 
