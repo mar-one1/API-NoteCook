@@ -15,7 +15,8 @@ const rateLimit = require('express-rate-limit');
 const cloudinary = require("./Api/config/cloudinary");
 // test merge test 3
 const allowedOrigins = [
-    'http://localhost:3000' 
+    'http://localhost:3000',
+    'vermillion-bienenstitch-d376af.netlify.app' 
   ];
 // TRUST PROXY (IMPORTANT)
 app.set('trust proxy', 1);
