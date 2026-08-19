@@ -7,33 +7,43 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
+version: "3.9"
+
 services:
 
   server:
     build:
       context: .
-    container_name: recipe_api
-    environment:
-      NODE_ENV: development
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_NAME: db_notebcook
+      dockerfile: Dockerfile
+
+    container_name: recipe_api1
+
+    restart: unless-stopped
+
     ports:
       - "3000:3000"
+
+    env_file:
+      - .env
+
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: pgvector/pgvector:pg17
+
     container_name: recipe_postgres
-    restart: always
+
+    restart: unless-stopped
 
     environment:
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456@
       POSTGRES_DB: db_notebcook
 
     ports:
@@ -41,6 +51,12 @@ services:
 
     volumes:
       - db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db_notebcook"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 volumes:
   db-data:
