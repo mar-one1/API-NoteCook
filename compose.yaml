@@ -8,22 +8,22 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-
   server:
     build:
       context: .
     container_name: recipe_api
+
     environment:
       NODE_ENV: development
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_NAME: db_notebcook
+      POSTGRES_URL_LOCAL: postgresql://postgres:123456@db:5432/db_notebcook
+
     ports:
       - "3000:3000"
+
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+
     depends_on:
       - db
 
@@ -34,6 +34,7 @@ services:
 
     environment:
       POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
       POSTGRES_DB: db_notebcook
 
     ports:

@@ -28,7 +28,7 @@ function verifyToken(req, res, next) {
         userInfo = expiredDecoded;
 
         const newAccessToken = jwt.sign(
-          { id: userInfo.id, username: userInfo.username },
+          { id: userInfo.id, username: userInfo.username, role: userInfo.role },
           secretKey,
           { expiresIn: '1h' }
         );

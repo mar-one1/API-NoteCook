@@ -19,6 +19,8 @@ CREATE TABLE User (
 );
 /*ALTER TABLE "User"
 ADD COLUMN "force_password_change" BOOLEAN DEFAULT FALSE;
+ALTER TABLE "User"
+ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user';
 */
 -- Create the Recipe table
 CREATE TABLE Recipe (
@@ -210,6 +212,9 @@ ADD COLUMN unique_key_user TEXT;
 
 CREATE UNIQUE INDEX idx_unique_key_user
 ON "User" (unique_key_user);
+
+ALTER TABLE "User"
+ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user';
 */
 -- Create the Recipe table
 CREATE TABLE "Recipe" (

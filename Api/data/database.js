@@ -1,22 +1,40 @@
 const { Pool } = require('pg');
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
-// PostgreSQL Connection Setup
+const isProduction = process.env.NODE_ENV === 'production';
+
+const connectionString = isProduction
+  ? process.env.DATABASE_URL
+  : process.env.POSTGRES_URL_LOCAL;
+
+if (!connectionString) {
+  throw new Error(
+    isProduction
+      ? 'DATABASE_URL is not defined'
+      : 'POSTGRES_URL_LOCAL is not defined'
+  );
+}
+
 const pool = new Pool({
-  connectionString : isDevelopment ? process.env.POSTGRES_URL_LOCAL: process.env.DATABASE_URL, // Use environment variable for your database connection string
-  ssl: !isDevelopment ? { rejectUnauthorized: false } : false, // Only enable SSL in production
+  connectionString,
+  ssl: isProduction
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
-// Connect to PostgreSQL and perform a test query
 const connectToDb = async () => {
   try {
     const client = await pool.connect();
-    const result = await client.query("SELECT NOW()");
+
+    const result = await client.query('SELECT NOW()');
+
     console.log('Connected to PostgreSQL:', result.rows[0]);
+
     client.release();
   } catch (err) {
     console.error('Failed to connect to PostgreSQL:', err.stack);
   }
 };
+
 connectToDb();
+
 module.exports = pool;

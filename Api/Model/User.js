@@ -25,7 +25,8 @@ class User {
     grade,
     status,
     url,
-    unique_key_user
+    unique_key_user,
+    role,
   ) {
     this.id = id;
     this.username = username;
@@ -40,6 +41,7 @@ class User {
     this.status = status;
     this.url = url;
     this.unique_key_user = unique_key_user;
+    this.role = role;
   }
 
 
@@ -280,7 +282,8 @@ class User {
         row.Grade_user,
         row.Status_user,
         row.Url_image,
-        row.unique_key_user
+        row.unique_key_user,
+        row.role
       );
 
       callback(null, user);

@@ -7,6 +7,7 @@ router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 const { body, validationResult } = require('express-validator');
 const validateUser = require('../validators/validateUser');
+const authorizeRoles = require('../Middleware/authorizeRoles');
 
 // Get a user by ID
 /*router.get('/:id', async (req, res) => {
@@ -183,7 +184,7 @@ console.log("username for image is : " +username)
 });
 
 // get All Users
-router.get('/', (req, res) => {
+router.get('/', authorizeRoles('admin'), (req, res) => {
   const { page, limit } = req.query;
 
   // استدعاء method مع callback
@@ -290,7 +291,7 @@ router.put('/filtre/:username',  validateUser.validateUserUpdate ,async (req, re
 
 
 // Delete a user by ID
-router.delete('/:id', validateUser.validateUserDelete, (req, res) => {
+router.delete('/:id', authorizeRoles('admin'), validateUser.validateUserDelete, (req, res) => {
   const userId = req.params.id;
    // Check for validation errors
    const errors = validationResult(req);

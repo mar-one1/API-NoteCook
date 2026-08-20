@@ -31,6 +31,7 @@ authRouter.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
+    console.log("User found:", user.role);
     // Password check
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -47,7 +48,7 @@ authRouter.post("/login", async (req, res) => {
 
     // Normal login → Generate JWT
     const token = jwt.sign(
-      { id: user.id_user, username: user.username },
+      { id: user.id_user, username: user.username, role: user.role },
       secretKey,
       { expiresIn: "1h" }
     );
@@ -114,7 +115,7 @@ authRouter.post('/register', validateUser.validateUserRegistration, async (req, 
     }
     // Normal login → Generate JWT
     const token = jwt.sign(
-      { id: newUser.id_user, username: newUser.username },
+      { id: newUser.id_user, username: newUser.username, role: newUser.role },
       secretKey,
       { expiresIn: "1h" }
     );
