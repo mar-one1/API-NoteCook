@@ -1,8 +1,6 @@
 
 function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
-    console.log('USER:', req.user);
-    console.log('ALLOWED ROLES:', allowedRoles);
 
     if (!req.user) {
       return res.status(401).json({
