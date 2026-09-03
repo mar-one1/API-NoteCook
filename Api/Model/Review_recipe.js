@@ -10,24 +10,6 @@ class ReviewRecipe {
   }
 
   static createReviewRecipe(detailReview, rateReview, recipeId, callback) {
-<<<<<<< HEAD
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO Review_recipe (Detail_review_recipe, Rate_review_recipe, FRK_recipe) VALUES (?, ?, ?)',
-      [detailReview, rateReview, recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newReviewRecipe = new ReviewRecipe(
-          this.lastID,
-          detailReview,
-          rateReview,
-          recipeId
-        );
-        callback(null, newReviewRecipe);
-=======
     const query = `
       INSERT INTO "ReviewRecipe" ("Detail_review_recipe", "Rate_review_recipe", "FRK_recipe")
       VALUES ($1, $2, $3)
@@ -39,7 +21,6 @@ class ReviewRecipe {
       if (err) {
         callback(err);
         return;
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       }
       const row = result.rows[0];
       const newReviewRecipe = new ReviewRecipe(
@@ -93,14 +74,6 @@ class ReviewRecipe {
     });
   }
 
-<<<<<<< HEAD
-static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
-  db.run(
-    'UPDATE Review_recipe SET Detail_review_recipe = ?, Rate_review_recipe = ?, FRK_recipe = ? WHERE Id_review_recipe = ?',
-    [detailReview, rateReview, recipeId, reviewId],
-    function (err) {
-=======
   static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback) {
     const query = `
       UPDATE "ReviewRecipe"
@@ -111,7 +84,6 @@ static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback
     const values = [detailReview, rateReview, recipeId, reviewId];
 
     pool.query(query, values, (err, result) => {
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       if (err) {
         callback(err);
         return;
@@ -131,20 +103,11 @@ static updateReviewRecipe(reviewId, detailReview, rateReview, recipeId, callback
     });
   }
 
-<<<<<<< HEAD
-static deleteReviewRecipe(reviewId, callback) {
-  const db = new sqlite3.Database('DB_Notebook.db');
-  db.run(
-    'DELETE FROM Review_recipe WHERE Id_review_recipe = ?',
-    [reviewId],
-    function (err) {
-=======
   static deleteReviewRecipe(reviewId, callback) {
     const query = `DELETE FROM "ReviewRecipe" WHERE "Id_review_recipe" = $1`;
     const values = [reviewId];
 
     pool.query(query, values, (err, result) => {
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       if (err) {
         callback(err);
         return;

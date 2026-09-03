@@ -11,25 +11,6 @@ class StepRecipe {
   }
 
   static createStepRecipe(detailStep, imageStep, timeStep, recipeId, callback) {
-<<<<<<< HEAD
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'INSERT INTO Step_recipe (Detail_step_recipe, Image_step_recipe, Time_step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)',
-      [detailStep, imageStep, timeStep, recipeId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        const newStepRecipe = new StepRecipe(
-          this.lastID,
-          detailStep,
-          imageStep,
-          timeStep,
-          recipeId
-        );
-        callback(null, newStepRecipe);
-=======
     const query = `
       INSERT INTO "StepRecipe" ("Detail_step_recipe", "Image_step_recipe", "Time_step_recipe", "FRK_recipe")
       VALUES ($1, $2, $3, $4)
@@ -41,7 +22,6 @@ class StepRecipe {
       if (err) {
         callback(err);
         return;
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       }
       const row = result.rows[0];
       const newStepRecipe = new StepRecipe(
@@ -99,29 +79,6 @@ class StepRecipe {
   }
 
   static updateStepRecipe(stepId, detailStep, imageStep, timeStep, recipeId, callback) {
-<<<<<<< HEAD
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'UPDATE Step_recipe SET Detail_Step_recipe = ?, Image_step_recipe = ?, Time_step_recipe = ?, FRK_recipe = ? WHERE Id_step_recipe = ?',
-      [detailStep, imageStep, timeStep, recipeId, stepId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, null); // Step recipe not found or not updated
-          return;
-        }
-        const updatedStepRecipe = new StepRecipe(
-          stepId,
-          detailStep,
-          imageStep,
-          timeStep,
-          recipeId
-        );
-        callback(null, updatedStepRecipe);
-=======
     const query = `
       UPDATE "StepRecipe"
       SET "Detail_step_recipe" = $1, "Image_step_recipe" = $2, "Time_step_recipe" = $3, "FRK_recipe" = $4
@@ -134,7 +91,6 @@ class StepRecipe {
       if (err) {
         callback(err);
         return;
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       }
       if (result.rowCount === 0) {
         callback(null, null); // Step recipe not found
@@ -153,22 +109,6 @@ class StepRecipe {
   }
 
   static deleteStepRecipe(stepId, callback) {
-<<<<<<< HEAD
-    const db = new sqlite3.Database('DB_Notebook.db');
-    db.run(
-      'DELETE FROM Step_recipe WHERE Id_step_recipe = ?',
-      [stepId],
-      function (err) {
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (this.changes === 0) {
-          callback(null, false); // Step recipe not found or not deleted
-          return;
-        }
-        callback(null, true); // Step recipe deleted successfully
-=======
     const query = 'DELETE FROM "StepRecipe" WHERE "Id_step_recipe" = $1';
     const values = [stepId];
 
@@ -176,7 +116,6 @@ class StepRecipe {
       if (err) {
         callback(err);
         return;
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       }
       const isDeleted = result.rowCount > 0; // True if a row was deleted, false otherwise
       callback(null, isDeleted);

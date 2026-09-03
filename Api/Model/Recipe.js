@@ -130,26 +130,6 @@ class Recipe {
           callback(null, null); // User not found
           return;
         }
-<<<<<<< HEAD
-        const id = user.id;
-        console.log(id);
-        const sql = `
-                SELECT Recipe.*, 
-                    Detail_recipe.*, 
-                    Ingredient.*, 
-                    Step_recipe.*, 
-                    Review_recipe.*,
-                    FavoriteUserRecipe.*
-                FROM Recipe
-                LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
-                LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
-                LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
-                LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
-                LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = FavoriteUserRecipe.FRK_recipe
-                WHERE Recipe.Frk_user = ?
-            `;
-=======
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
 
         const userId = userResult.rows[0].Id_user;
         console.log(userId);
@@ -224,22 +204,14 @@ class Recipe {
             );
             entry.reviews.add(
               JSON.stringify({
-<<<<<<< HEAD
-                id: row.Id_review_recipe,
-=======
                 id: row.Id_Review_recipe,
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
                 detailReview: row.Detail_review_recipe,
                 rateReview: row.Rate_review_recipe,
               })
             );
             entry.steps.add(
               JSON.stringify({
-<<<<<<< HEAD
-                id: row.Id_step_recipe,
-=======
                 id: row.Id_Step_recipe,
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
                 detailStep: row.Detail_step_recipe,
                 imageStep: row.Image_step_recipe,
                 timeStep: row.Time_step_recipe,
@@ -325,12 +297,6 @@ class Recipe {
       );
     }
 
-<<<<<<< HEAD
-  static insertReviews(db, reviews, recipeId, callback) {
-    try {
-      const insertReview = db.prepare(
-        `INSERT INTO Review_recipe (Detail_review_recipe, Rate_review_recipe, FRK_recipe) VALUES (?, ?, ?)`
-=======
     // 4. Insert steps
     if (Array.isArray(steps) && steps.length > 0) {
       await Promise.all(
@@ -341,16 +307,9 @@ class Recipe {
             [step.detailStep, step.imageStep, step.timeStep, recipeId]
           )
         )
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       );
     }
 
-<<<<<<< HEAD
-  static insertSteps(db, steps, recipeId, callback) {
-    try {
-      const insertStep = db.prepare(
-        `INSERT INTO Step_recipe (Detail_step_recipe, Image_step_recipe, Time_step_recipe, FRK_recipe) VALUES (?, ?, ?, ?)`
-=======
     // 5. Insert reviews
     if (Array.isArray(reviews) && reviews.length > 0) {
       await Promise.all(
@@ -361,7 +320,6 @@ class Recipe {
             [review.detailReview, review.rateReview, recipeId]
           )
         )
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       );
     }
 
@@ -378,117 +336,18 @@ class Recipe {
   }
 }
 
-<<<<<<< HEAD
-  static getRecipesByConditions(conditions, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      let query = `
-    SELECT 
-      Recipe.*, 
-      Detail_recipe.*, 
-      Ingredient.*, 
-      Step_recipe.*, 
-      Review_recipe.*
-    FROM Recipe
-    LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
-    LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
-    LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
-    LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe`;
-=======
   static async getRecipesByConditions(conditions, limit = 10, page = 1, callback) {
   try {
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
 
     limit = Math.max(1, limit);
     page = Math.max(1, page);
 
-<<<<<<< HEAD
-      // Check if searchText is provided
-      if (conditions.searchText) {
-        query += ` WHERE (
-      Recipe.Nom_Recipe LIKE ? OR
-      Detail_recipe.Dt_recipe LIKE ? OR
-      Ingredient.Ingredient_recipe LIKE ? OR
-      Step_recipe.Detail_step_recipe LIKE ? OR
-      Review_recipe.Detail_review_recipe LIKE ?
-    )`;
-
-        // Add searchText parameters
-        params.push(`%${conditions.searchText}%`);
-        /*params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);
-        params.push(`%${conditions.searchText}%`);*/
-
-        whereClauseAdded = true;
-      }
-
-      for (const key in conditions) {
-        if (key !== "searchText") {
-          if (!whereClauseAdded) {
-            query += " WHERE";
-            whereClauseAdded = true;
-          } else {
-            query += " AND";
-          }
-          query += ` ${key} LIKE ?`;
-          params.push(`%${conditions[key]}%`);
-        }
-      }
-
-      db.all(query, params, (err, rows) => {
-        if (err) {
-          callback(err);
-          db.close();
-          return;
-        }
-        const recipeSet = new Set();
-        rows.forEach((row) => {
-          // Use JSON.stringify to compare recipe objects as strings
-          recipeSet.add(
-            JSON.stringify({
-              id: row.Id_recipe,
-              name: row.Nom_Recipe,
-              icon: row.Icon_recipe,
-              fav: row.Fav_recipe,
-              unique_key: row.unique_key_recipe,
-              userId: row.Frk_user,
-            })
-          );
-        });
-        // Convert the set back to an array of recipes
-        const uniqueRecipes = Array.from(recipeSet).map(JSON.parse);
-        callback(null, uniqueRecipes);
-        db.close();
-      });
-    } catch (err) {
-      db.close();
-      console.error("Error getting recipes by conditions:", err);
-      callback(err, null);
-    }
-  }
-
-  static getFullRecipeById(id, callback) {
-    const db = new sqlite3.Database("DB_Notebook.db");
-    try {
-      const sql = `
-    SELECT Recipe.*,User.*, Detail_recipe.*, Ingredient.*, Step_recipe.*,Review_recipe.*
-          FROM Recipe
-          LEFT JOIN User ON Recipe.Frk_user = User.Id_user
-          LEFT JOIN Detail_recipe ON Recipe.Id_recipe = Detail_recipe.FRK_recipe
-          LEFT JOIN Ingredient ON Recipe.Id_recipe = Ingredient.FRK_recipe
-          LEFT JOIN Step_recipe ON Recipe.Id_recipe = Step_recipe.FRK_recipe
-          LEFT JOIN Review_recipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
-          LEFT JOIN FavoriteUserRecipe ON Recipe.Id_recipe = Review_recipe.FRK_recipe
-          WHERE Recipe.Id_recipe = ?
-=======
     let baseQuery = `
       FROM "Recipe"
       LEFT JOIN "DetailRecipe" ON "Recipe"."Id_recipe" = "DetailRecipe"."FRK_recipe"
       LEFT JOIN "IngredientRecipe" ON "Recipe"."Id_recipe" = "IngredientRecipe"."FRK_detail_recipe"
       LEFT JOIN "StepRecipe" ON "Recipe"."Id_recipe" = "StepRecipe"."FRK_recipe"
       LEFT JOIN "ReviewRecipe" ON "Recipe"."Id_recipe" = "ReviewRecipe"."FRK_recipe"
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
     `;
 
     let whereParts = [];
@@ -655,60 +514,6 @@ class Recipe {
           })
         );
 
-<<<<<<< HEAD
-        // Create sets to ensure uniqueness
-        const ingredientSet = new Set();
-        const reviewSet = new Set();
-        const stepSet = new Set();
-
-        // Map over the rows for ingredients, reviews, and steps
-        rows.forEach((row) => {
-          // Ensure uniqueness for each entity type
-          ingredientSet.add(
-            JSON.stringify({
-              id: row.Id_Ingredient,
-              ingredient: row.Ingredient_recipe,
-              poidIngredient: row.PoidIngredient_recipe,
-              unite: row.Unite,
-              recipeId: row.FRK_recipe,
-            })
-          );
-
-          reviewSet.add(
-            JSON.stringify({
-              id: row.Id_review_recipe,
-              detailReview: row.Detail_review_recipe,
-              rateReview: row.Rate_review_recipe,
-              recipeId: row.FRK_recipe,
-            })
-          );
-
-          stepSet.add(
-            JSON.stringify({
-              id: row.Id_Step_recipe,
-              detailStep: row.Detail_step_recipe,
-              imageStep: row.Image_step_recipe,
-              timeStep: row.Time_step_recipe,
-              recipeId: row.FRK_recipe,
-            })
-          );
-        });
-
-        // Convert sets back to arrays of unique entities
-        const ingredients = Array.from(ingredientSet).map(JSON.parse);
-        const reviews = Array.from(reviewSet).map(JSON.parse);
-        const steps = Array.from(stepSet).map(JSON.parse);
-
-        // Pass all the data to the callback
-        callback(null, {
-          recipe,
-          user,
-          detail_recipe,
-          ingredients,
-          reviews,
-          steps,
-        });
-=======
         stepSet.add(
           JSON.stringify({
             id: row.Id_Step_recipe,
@@ -733,7 +538,6 @@ class Recipe {
         ingredients,
         reviews,
         steps,
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
       });
     } catch (err) {
       console.error("Error full retrieving recipe by id: " + id, err);
@@ -1073,102 +877,12 @@ class Recipe {
       )
     );
 
-<<<<<<< HEAD
-        db.run(
-          `UPDATE Recipe 
-           SET Nom_Recipe = ?, Fav_recipe = ? 
-           WHERE unique_key_recipe = ?`,
-          [recipe.name, recipe.fav, recipe.unique_key],
-          function (err) {
-            if (err) {
-              db.run("ROLLBACK");
-              console.error("Error updating recipe:", err);
-              return callback(err);
-            }
-
-            const uniqueKey = recipe.unique_key;
-
-            // Retrieve the recipe ID using the unique_key_recipe
-            db.get(
-              `SELECT * FROM Recipe WHERE unique_key_recipe = ?`,
-              [uniqueKey],
-              (err, row) => {
-                if (err || !row) {
-                  db.run("ROLLBACK");
-                  console.error("Error retrieving recipe ID:", err);
-                  return callback(err || new Error("Recipe not found"));
-                }
-
-                const recipeId = row.Id_recipe;
-                console.log(recipeId);
-                
-
-                // Update detail recipe
-                db.run(
-                  `UPDATE Detail_recipe 
-                   SET Dt_recipe = ?, Dt_recipe_time = ?, Rate_recipe = ?, Level_recipe = ?, Calories_recipe = ? 
-                   WHERE FRK_recipe = ?`,
-                  [
-                    detail_recipe.detail,
-                    detail_recipe.time,
-                    detail_recipe.rate,
-                    detail_recipe.level,
-                    detail_recipe.calories,
-                    recipeId,
-                  ],
-                  function (err) {
-                    if (err) {
-                      db.run("ROLLBACK");
-                      console.error("Error updating detail recipe:", err);
-                      return callback(err);
-                    }
-                    
-                    // Update ingredients
-                    Recipe.updateIngredients(db, ingredients, recipeId, (err) => {
-                      if (err) {
-                        db.run("ROLLBACK");
-                        console.error("Error updating ingredients:", err);
-                        return callback(err);
-                      }
-
-                      // Update steps
-                      Recipe.updateSteps(db, steps, recipeId, (err) => {
-                        if (err) {
-                          db.run("ROLLBACK");
-                          console.error("Error updating steps:", err);
-                          return callback(err);
-                        }
-
-                        // Commit transaction
-                        db.run("COMMIT", function (err) {
-                          if (err) {
-                            console.error("Error committing transaction:", err);
-                            return callback(err);
-                          }
-                          console.log("Recipe updated successfully with unique key:", uniqueKey);
-                          callback(null, uniqueKey);
-                        });
-                      });
-                    });
-                  }
-                );
-              }
-            );
-          }
-        );
-      } catch (err) {
-        db.run("ROLLBACK");
-        console.error("Error updating recipe:", err);
-        callback(err);
-      }
-=======
     callback(null, {
       page,
       limit,
       total,
       totalPages,
       recipes
->>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
     });
 
   } catch (err) {
