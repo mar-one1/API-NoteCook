@@ -17,7 +17,7 @@ router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
   const { name, icon, fav,unique_key, userId } = req.body;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   console.log(name);
   console.log(icon);
@@ -174,7 +174,7 @@ router.get("/user/full/:username", validateRecipe.validateGetByIdUser, (req, res
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
 
   Recipe.getAllFullRecipesByUsername(username, (err, recipes) => {
@@ -200,7 +200,7 @@ router.get("/:id", validateRecipe.validateGetByIdRecipe, (req, res) => {
   const recipeId = req.params.id;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   Recipe.getFullRecipeById(recipeId, (err, recipe) => {
     if (err) {
@@ -219,7 +219,7 @@ router.post("/recipe", validateRecipe.validateCreateRecipe, async (req, res) => 
   const { recipe, detailRecipe, ingredients, reviews, steps } = recipeData;
   const errors = validationResult(recipe);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   Recipe.insertRecipeWithDetails(recipeData, (err, recipeId) => {
     if (err) {
@@ -289,7 +289,7 @@ router.get("/:id/user", validateRecipe.validateGetByIdRecipe, (req, res) => {
   const recipeId = req.params.id;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   Recipe.getUserByRecipeId(recipeId, (err, user) => {
     if (err) {
@@ -308,7 +308,7 @@ router.get("/user/:username", validateRecipe.validateGetByUsernameRecipe, (req, 
   console.log(userId);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   Recipe.getRecipesByUsernameUser(userId, (err, recipes) => {
     if (err) {
@@ -373,7 +373,7 @@ router.delete("/:id", validateRecipe.validateDeleteRecipe, (req, res) => {
   const recipeId = req.params.id;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: errors.array() });
   }
   Recipe.deleteRecipe(recipeId, (err, deleted) => {
     if (err) {

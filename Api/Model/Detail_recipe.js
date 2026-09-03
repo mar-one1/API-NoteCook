@@ -105,12 +105,29 @@ class DetailRecipe {
     }
   }
 
+<<<<<<< HEAD
+  static getRecipeByDetailrecipeId(detailRecipeId, callback) {
+    const db = new sqlite3.Database('DB_Notebook.db');
+    db.get(
+      'SELECT FRK_recipe FROM Detail_recipe WHERE Id_Detail_recipe = ?',
+      [detailRecipeId],
+      (err, row) => {
+        if (err) {
+          callback(err, null);
+          return;
+        }
+        if (!row) {
+          callback(null, null); // Detail_Recipe not found
+          return;
+        }
+=======
   static async getRecipeByDetailrecipeId(detailRecipeId, callback) {
     try {
       const result = await pool.query(
         `SELECT "FRK_recipe" FROM "DetailRecipe" WHERE "Id_detail_recipe" = $1`,
         [detailRecipeId]
       );
+>>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
 
       if (result.rows.length === 0) {
         callback(null, null); // Detail_Recipe not found

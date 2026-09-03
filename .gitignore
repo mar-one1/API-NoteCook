@@ -1,4 +1,19 @@
 node_modules/
+.env*
+
+# Local Netlify folder
+.netlify
+
+
+
+# Logs
+logs
+*.log
+
+# Uploads (optional)
+upload/
+
+# Vercel & Netlify
 .vercel
 .env*
 

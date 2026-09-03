@@ -164,7 +164,7 @@ npm start       # Start server (production)
 **Marwane Rays**
 📧 Contact: [mar-one1\_email@example.com](mailto:your_email@example.com)
 💼 GitHub: [github.com/yourusername](https://github.com/mar-one1)
-
+thanks.
 ---
 
 ## 📃 License

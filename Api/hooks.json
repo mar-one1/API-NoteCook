@@ -1,0 +1,9 @@
+[
+    {
+      "id": "deploy-api",
+      "execute-command": "C:\\webhook\\deploy.bat",
+      "command-working-directory": "C:\\path\\to\\your\\project",
+      "response-message": "Deployment started!"
+    }
+  ]
+  

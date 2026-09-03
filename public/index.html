@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .endpoint {
+      background: #f8f9fa;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border-left: 4px solid #3498db;
+    }
+    .method {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .get { background-color: #61affe; color: white; }
+    .post { background-color: #49cc90; color: white; }
+    .put { background-color: #fca130; color: white; }
+    .delete { background-color: #f93e3e; color: white; }
+    code {
+      background: #eee;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .note {
+      background-color: #fffde7;
+      padding: 10px;
+      border-left: 4px solid #ffd600;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recipe API Documentation</h1>
+  <p>Welcome to the Recipe API documentation. This API provides endpoints for managing recipes, users, and related data.</p>
+  
+  <div class="note">
+    <strong>Note:</strong> All API endpoints are available at <code>/.netlify/functions/index</code> or through the <code>/api</code> path.
+  </div>
+
+  <h2>Authentication</h2>
+  <div class="endpoint">
+    <span class="method post">POST</span>
+    <code>/auth/login</code>
+    <p>Authenticate a user and receive a JWT token.</p>
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "username": "your_username",
+  "password": "your_password"
+}</code></pre>
+    <p><strong>Response:</strong></p>
+    <pre><code>{
+  "message": "Authentication successful",
+  "token": "your_jwt_token"
+}</code></pre>
+  </div>
+
+  <h2>Users</h2>
+  <div class="endpoint">
+    <span class="method post">POST</span>
+    <code>/users</code>
+    <p>Register a new user.</p>
+    <p><strong>Request Body:</strong></p>
+    <pre><code>{
+  "username": "new_username",
+  "firstname": "First",
+  "lastname": "Last",
+  "birthday": "1990-01-01",
+  "email": "user@example.com",
+  "phoneNumber": "1234567890",
+  "password": "secure_password",
+  "grade": "user",
+  "status": "active"
+}</code></pre>
+  </div>
+
+  <h2>Recipes</h2>
+  <div class="endpoint">
+    <span class="method get">GET</span>
+    <code>/recipes</code>
+    <p>Get all recipes (requires authentication).</p>
+    <p><strong>Headers:</strong></p>
+    <pre><code>Authorization: Bearer your_jwt_token</code></pre>
+  </div>
+
+  <h2>API Exploration</h2>
+  <p>For a complete list of available endpoints, you can visit the Swagger documentation at:</p>
+  <p><code>/.netlify/functions/index/api-docs</code></p>
+
+  <footer style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; color: #777;">
+    <p>Recipe API - Deployed on Netlify</p>
+  </footer>
+</body>
+</html>
