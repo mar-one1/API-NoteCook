@@ -7,51 +7,10 @@ router.use(express.urlencoded({ extended: true }));
 const multer = require("multer");
 const { body, validationResult } = require("express-validator");
 const validateRecipe = require("../validators/validateRecipe");
-
-// Determine the appropriate upload directory based on environment
-const getUploadDirectory = () => {
-  // In production (Netlify Functions), use the /tmp directory which is writable
-  if (process.env.NODE_ENV === 'production') {
-    return '/tmp/recipe-uploads/';
-  }
-  // In development, use the local directory
-  return './public/data/uploads';
-};
-
-// Create the upload directory if it doesn't exist
-const fs = require('fs');
-const path = require('path');
-const uploadDir = getUploadDirectory();
-
-// Only try to create directory in development environment
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-  } catch (error) {
-    console.error(`Error creating upload directory: ${error.message}`);
-  }
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Define a custom file name
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  }
-});
-
-// Create multer instance with fallback if storage fails
-const upload = multer({
-  storage: storage,
-  // Fallback to memory storage if disk storage fails
-  fallback: multer.memoryStorage()
-});
+const upload = multer({ storage: multer.memoryStorage() });
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
+const uploadToCloudinary = require("../utils/cloudinaryUpload");
 
 // Create a recipe
 router.post("/", validateRecipe.validateCreateRecipe, async (req, res) => {
@@ -84,45 +43,157 @@ router.delete("/delete/:path", (req, res) => {
   });
 });
 
-router.post("/upload/:id", upload.single("image"), async (req, res) => {
+const { processUploadedFile } = require('../utils/fileUpload');
+// Upload recipe image bytes
+/*router.post("/upload/:id", upload.single("image"), async (req, res) => {
   const id = req.params.id;
   console.log(req.body);
-  console.log(req.file);
+  
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
-  // Process the uploaded file
-  const fileName = req.file.filename;
-  const imageUrl = encodeURIComponent(fileName);
-  console.log(id);
 
-  Recipe.UpdateRecipeImage(id, imageUrl, (err, validite) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    // If the user doesn't exist, add them to the database
-    res.status(201).json(validite);
-  });
+  try {
+    // Process the uploaded file and get base64 data
+    const { filename, base64Data } = processUploadedFile(req.file);
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+
+    // Call the method to update recipe image
+    await Recipe.updateRecipeImageByte(id, imageUrl, (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json(result);
+    });
+  } catch (err) {
+    console.error('Error processing upload:', err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+*/
+
+router.post("/upload/:id", upload.single("image"), async (req, res) => {
+
+  const id = req.params.id;
+console.log(req.headers['content-length']);
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "No file uploaded",
+    });
+  }
+
+  try {
+
+    // 1. Upload to Cloudinary (clean helper usage)
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "recipes/images",
+      "image"
+    );
+    console.log(result);
+    
+
+    // 2. Update DB (NO CALLBACK)
+    const updatedRecipe = await Recipe.updateRecipeImageCloudinary(
+      id,
+      result.secure_url,
+      result.public_id
+    );
+    console.log(updatedRecipe);
+    
+
+    // 3. Response
+    res.status(200).json({
+      success: true,
+      imageUrl: result.secure_url,
+      cloudinary_id: result.public_id,
+      data: updatedRecipe,
+    });
+
+  } catch (err) {
+
+    console.error("Cloudinary Upload Error:", err);
+console.log(err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
 });
 
-// Get a recipe by ID
+router.post("/upload-video/:id", upload.single("video"), async (req, res) => {
+
+  const id = req.params.id;
+
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "No video uploaded",
+    });
+  }
+
+  try {
+
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      "recipes/videos",
+      "video" // 🔥 IMPORTANT
+    );
+
+    const videoUrl = result.secure_url;
+    const publicId = result.public_id;
+
+    const updated = await Recipe.updateRecipeVideoCloudinary(
+      id,
+      videoUrl,
+      publicId
+    );
+
+    res.status(200).json({
+      success: true,
+      videoUrl,
+      cloudinary_id: publicId,
+      data: updated,
+    });
+
+  } catch (err) {
+
+    console.error("Video upload error:", err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+// Get a recipe by username
 router.get("/user/full/:username", validateRecipe.validateGetByIdUser, (req, res) => {
   const username = req.params.username;
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
     return res.status(400).json({ error: errors.array() });
   }
-  Recipe.getAllFullRecipesByUsername(username, (err, recipe) => {
+
+  Recipe.getAllFullRecipesByUsername(username, (err, recipes) => {
     if (err) {
+      console.error("Database error:", err);
       return res.status(500).json({ error: err.message });
     }
-    if (!recipe) {
-      return res.status(406).json({ error: "Recipe not found" });
+
+    console.log("Fetched recipes for username:", username, recipes);
+
+    if (!recipes || recipes.length === 0) {
+      return res.status(404).json({ error: "No recipes found for this user" });
     }
-    res.json(recipe);
+
+    res.status(200).json(recipes);
   });
-}
-);
+});
+
+
 
 // Get a recipe by ID
 router.get("/:id", validateRecipe.validateGetByIdRecipe, (req, res) => {
@@ -161,29 +232,55 @@ router.post("/recipe", validateRecipe.validateCreateRecipe, async (req, res) => 
 }
 );
 
-// Route to get recipes by conditions
-router.get("/filters/recipes", (req, res) => {
-  const conditions = req.query; // Get query parameters as conditions
-  console.log(req.query);
-  // Call the method to get recipes by conditions
-  Recipe.getRecipesByConditions(conditions, (err, recipes) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
+router.get("/conditions/recipes", (req, res) => {
+
+  const conditions = { ...req.query };
+
+  const page = parseInt(conditions.page) || 1;
+
+  const limit = parseInt(conditions.limit) || 10;
+
+  delete conditions.page;
+  delete conditions.limit;
+  console.log(conditions);
+  
+  Recipe.getRecipesByConditions(
+    conditions,
+    limit,
+    page,
+    (err, data) => {
+
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
+      console.log(data);
+      
+      res.json(data);
     }
-    if (!recipes || recipes.length === 0) {
-      return res.status(404).json({ error: "Recipes not found" });
-    }
-    res.json(recipes);
-  });
+  );
 });
 
+
 // Get all recipes
-router.get("/", (req, res) => {
+/*router.get("/", (req, res) => {
   Recipe.getAllRecipes((err, recipes) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
     res.json(recipes);
+  });
+});
+*/
+router.get("/", (req, res) => {
+  const { page, limit } = req.query;
+
+  Recipe.getAllRecipes(page, limit, (err, data) => {
+    if (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+    res.status(200).json(data);
   });
 });
 
@@ -228,18 +325,25 @@ router.get("/user/:username", validateRecipe.validateGetByUsernameRecipe, (req, 
 );
 
 router.get("/search/nom", (req, res) => {
-  const searchTerm = req.query.key;
-  console.log("key : " + searchTerm);
-  Recipe.searchRecipes(searchTerm, (err, recipes) => {
+  const searchTerm = req.query.key || "";  
+  const page = parseInt(req.query.page) || 1;      // default page 1
+  const limit = parseInt(req.query.limit) || 10;   // default 10 per page
+
+  console.log(`Search key: ${searchTerm}, page: ${page}, limit: ${limit}`);
+
+  Recipe.searchRecipes(searchTerm, page, limit, (err, data) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    if (!recipes || recipes.length === 0) {
-      return res.status(406).json({ error: "Recipes not found !!!" });
+
+    if (!data.recipes || data.recipes.length === 0) {
+      return res.status(404).json({ error: "Recipes not found !!!" });
     }
-    res.json(recipes);
+
+    res.json(data); // data = { page, limit, total, totalPages, recipes }
   });
 });
+
 
 router.put('/', (req, res) => {
   const recipeData = req.body;

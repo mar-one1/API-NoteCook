@@ -1,6 +1,4 @@
-// ingredient_recipe.model.js
-
-const sqlite3 = require('sqlite3').verbose();
+const pool  = require("../../data/database");
 
 class IngredientRecipe {
   constructor(
@@ -13,8 +11,8 @@ class IngredientRecipe {
     this.Frk_idIngredient = Frk_idIngredient;
   }
 
-
   // Create a new ingredient recipe association
+<<<<<<< HEAD
   static create(recipeId, ingredientId, callback) {
     const db = new sqlite3.Database('DB_Notebook.db');
     db.run(
@@ -85,6 +83,58 @@ class IngredientRecipe {
       callback(null);
     });
     db.close();
+=======
+  static async create(recipeId, ingredientId) {
+    try {
+      const res = await pool.query(
+        'INSERT INTO "Ingredients" ("Frk_idRecipe", "Frk_idIngredient") VALUES ($1, $2) RETURNING *',
+        [recipeId, ingredientId]
+      );
+      return new IngredientRecipe(res.rows[0].id_Ingeredient_recipe, recipeId, ingredientId);
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Retrieve all ingredient recipe associations
+  static async getAll() {
+    try {
+      const res = await pool.query('SELECT * FROM "Ingredients"');
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Retrieve all ingredient recipe associations for a recipe
+  static async getByRecipeId(recipeId) {
+    try {
+      const res = await pool.query('SELECT * FROM "Ingredients" WHERE "Frk_idRecipe" = $1', [recipeId]);
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Retrieve all ingredient recipe associations for a specific ingredient ID
+  static async getByIngredientId(ingredientId) {
+    try {
+      const res = await pool.query('SELECT * FROM "Ingredients" WHERE "Frk_idIngredient" = $1', [ingredientId]);
+      return res.rows.map(row => new IngredientRecipe(row.id_Ingeredient_recipe, row.Frk_idRecipe, row.Frk_idIngredient));
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Delete all ingredient recipe associations for a recipe
+  static async deleteByRecipeId(recipeId) {
+    try {
+      await pool.query('DELETE FROM "Ingredients" WHERE "Frk_idRecipe" = $1', [recipeId]);
+      return { message: "Deleted successfully" };
+    } catch (err) {
+      throw err;
+    }
+>>>>>>> bde9db8caa29941a23f776a0fc0a627974a1937c
   }
 }
 

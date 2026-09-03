@@ -2,47 +2,52 @@
   "name": "prj_api",
   "version": "1.0.0",
   "description": "API for managing project resources",
+  "homepage": "https://github.com/mar-one1/API-21.11.2023#readme",
+  "bugs": {
+    "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mar-one1/API-21.11.2023.git"
+  },
+  "license": "ISC",
+  "author": "moimeme",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "serve": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "moimeme",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mar-one1/API-21.11.2023.git"
-  },
-  "bugs": {
-    "url": "https://github.com/mar-one1/API-21.11.2023.git/issues"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"Error: no build specified\" && exit 1",
+    "dev": "node index.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "axios": "^1.5.1",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^8.7.0",
-    "body-parser": "^1.20.2",
+    "cloudinary": "^2.10.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.0",
+    "express-rate-limit": "^8.2.1",
     "express-validator": "^7.0.1",
     "file-url": "^4.0.0",
     "fuse.js": "^7.0.0",
-    "helmet": "^7.0.0",
+    "helmet": "^7.2.0",
     "http-server": "^14.1.1",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "mongoose": "^8.1.1",
     "multer": "^1.4.5-lts.1",
-    "pg": "^8.10.0",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.37.1",
+    "pg": "^8.13.1",
+    "qs": "^6.14.1",
+    "sequelize": "^6.37.8",
     "serverless-http": "^3.2.0",
     "socket.io": "^4.8.0",
-    "socket.io-client": "^4.7.5",
-    "sqlite3": "^5.1.7",
+    "socket.io-client": "^4.8.1",
+    "sqlite3": "^6.0.1",
+    "streamifier": "^0.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.1.2",
+    "uuid": "^14.0.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

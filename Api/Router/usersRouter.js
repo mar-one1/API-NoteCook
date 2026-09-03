@@ -1,16 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../Model/User');
-const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const fs = require('fs');
 router.use(express.json()); 
 router.use(express.urlencoded({ extended: true }));
-const UserRepository  = require('../Repo/UserRepository'); // Replace with the actual path
 const { body, validationResult } = require('express-validator');
 const validateUser = require('../validators/validateUser');
-
 
 // Get a user by ID
 /*router.get('/:id', async (req, res) => {
@@ -33,50 +29,7 @@ const validateUser = require('../validators/validateUser');
 
 
 //router.use(bodyParser.json());
-
-// Determine the appropriate upload directory based on environment
-const getUploadDirectory = () => {
-  // In production (Netlify Functions), use the /tmp directory which is writable
-  if (process.env.NODE_ENV === 'production') {
-    return '/tmp/uploads/';
-  }
-  // In development, use the local directory
-  return './public/uploads/';
-};
-
-// Create the upload directory if it doesn't exist
-const path = require('path');
-const uploadDir = getUploadDirectory();
-
-// Only try to create directory in development environment
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-  } catch (error) {
-    console.error(`Error creating upload directory: ${error.message}`);
-  }
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Define a custom file name
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
-// Create multer instance with fallback if storage fails
-const upload = multer({
-  storage: storage,
-  // Fallback to memory storage if disk storage fails
-  fallback: multer.memoryStorage()
-})
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Create a new user
 // Create a new user
@@ -95,6 +48,7 @@ router.post('/', validateUser.validateUserRegistration, async (req, res) => {
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
 
   // Check for validation errors
@@ -116,6 +70,7 @@ router.post('/', validateUser.validateUserRegistration, async (req, res) => {
   grade,
   status,
   url,
+  unique_key_user,
   (err, newUser) => {
     
     if (err) {
@@ -142,26 +97,44 @@ router.delete('/delete/:path', (req, res) => {
   });
 });
 
-router.post('/upload/:username', upload.single('image'),async  (req, res) => {
-  const username = req.params.username;
-  console.log(req.body);
-  console.log(req.file);
-  if (!req.file) {
-      return res.status(400).send('No file uploaded.');
-  }
-  // Process the uploaded file
-  const fileName = req.file.filename;
-  const imageUrl = encodeURIComponent(fileName);
-  console.log(username);
+const { processUploadedFile } = require('../utils/fileUpload');
 
-  User.UpdateUserImage(username,imageUrl,(err, validite) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  // If the user doesn't exist, add them to the database
-    res.status(201).json(validite);
-  });
+router.post('/upload/:username', upload.single('image'), async (req, res) => {
+  const username = req.params.username;
+
+  console.log('Request body:', req.body);
+
+  // Check if a file is uploaded
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
+
+  try {
+    // Process the uploaded file and get base64 data
+    const { filename, base64Data } = processUploadedFile(req.file);
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+    console.log('Generated base64 image URL');
+
+    // Update the user's image in the database
+    User.updateUserImage(username, imageUrl, (err, updatedImageUrl) => {
+      if (err) {
+        console.error('Error updating user image:', err);
+        return res.status(500).json({ error: 'Failed to update user image.' });
+      }
+
+      if (!updatedImageUrl) {
+        return res.status(404).json({ error: 'User not found or update failed.' });
+      }
+
+      // Respond with success
+      res.status(200).json(updatedImageUrl);
+    });
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
 });
+
 
 // Get a user by ID
 router.get('/:id', (req, res) => {
@@ -211,32 +184,42 @@ console.log("username for image is : " +username)
 
 // get All Users
 router.get('/', (req, res) => {
-  User.getAllUsers((err, users) => {
+  const { page, limit } = req.query;
+
+  // استدعاء method مع callback
+  User.getUsers(page, limit, (err, data) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ message: 'Server error', error: err.message });
     }
-    res.json(users);
+
+    res.status(200).json(data);
   });
 });
-
 // Add more user routes as needed
 
 router.put('/image/:username', (req, res) => {
   const username = req.params.username;
-  const {url} =req.body;
-  const imageurl = url;
-  console.log(req.body);
-  console.log(username);
-  User.UpdateUserImage(username,imageurl,(err,path) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Image URL is required.' });
+  }
+
+  console.log('Request body:', req.body);
+  console.log('Username:', username);
+
+  User.updateUserImage(username, url, (err, updatedImageUrl) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: 'An error occurred while updating the image.' });
     }
-    if (!path) {
-      return res.status(406).json({ error: 'User not found or not updated!!' });
+    if (!updatedImageUrl) {
+      return res.status(404).json({ error: 'User not found or not updated!' });
     }
-    res.json(path);
+    res.status(200).json(updatedImageUrl);
   });
-})
+});
+
+
 
 // Update a user by ID
 router.put('/:id', validateUser.validateUserUpdate, (req, res) => {
@@ -253,13 +236,14 @@ router.put('/:id', validateUser.validateUserUpdate, (req, res) => {
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
      return res.status(400).json({ error: errors.array() });
    }
-  User.updateUser(userId,username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
+  User.updateUser(userId,username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url,unique_key_user, (err, updatedUser) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -285,13 +269,14 @@ router.put('/filtre/:username',  validateUser.validateUserUpdate ,async (req, re
     grade,
     status,
     url,
+    unique_key_user,
   } = req.body;
    // Check for validation errors
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
      return res.status(400).json({ error: errors.array() });
    }
-  User.updateUserByUsername(username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url, (err, updatedUser) => {
+  User.updateUserByUsername(username,firstname,lastname,birthday,email,phoneNumber,icon,password,grade,status,url,unique_key_user, (err, updatedUser) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -330,9 +315,5 @@ router.delete('/:id', validateUser.validateUserDelete, (req, res) => {
 router.get('/', (req, res) => {
   res.send('Hello from the router User!');
 });
-
-
-module.exports = router;
-
 
 module.exports = router;

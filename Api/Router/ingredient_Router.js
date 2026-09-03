@@ -4,13 +4,14 @@ const IngredientRecipe = require("../Model/Ingredient"); // Import the Ingredien
 
 // Create an ingredient recipe
 router.post("/", (req, res) => {
-  const { ingredient, poidIngredient, recipeId } = req.body;
+  const { ingredient, poidIngredient, unit, recipeId } = req.body;
 
   // Validate request data here if needed
 
   IngredientRecipe.createIngredientRecipe(
     ingredient,
     poidIngredient,
+    unit,
     recipeId,
     (err, newIngredientRecipe) => {
       if (err) {
@@ -40,7 +41,7 @@ router.get("/:id", (req, res) => {
 
 // Get all ingredient recipes
 router.get("/", (req, res) => {
-  IngredientRecipe.getAllIngredientRecipes((err, ingredientRecipes) => {
+  IngredientRecipe.getAllIngredientRecipe((err, ingredientRecipes) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
